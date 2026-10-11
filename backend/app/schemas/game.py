@@ -48,3 +48,21 @@ class QueryResult(BaseModel):
     row_count: int = 0
     execution_time_ms: float = 0.0
     error: Optional[str] = None
+
+
+class LeaderboardItem(BaseModel):
+    rank: int
+    team_id: int
+    team_name: str
+    username: str
+    current_stage: int
+    completed_stages_count: int
+    stage_1_completed_at: Optional[str] = None
+    stage_2_completed_at: Optional[str] = None
+    is_finished: bool = False
+    last_completed_at: Optional[str] = None
+
+
+class LeaderboardResponse(BaseModel):
+    total_stages: int = 2
+    leaderboard: List[LeaderboardItem]

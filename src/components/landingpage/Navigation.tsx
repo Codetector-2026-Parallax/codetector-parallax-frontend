@@ -18,14 +18,29 @@ function Navigation() {
               {link.label}
             </a>
           ))}
+          <Link
+            to="/leaderboard"
+            className="flex items-center gap-1.5 font-bold text-amber-400 transition-colors hover:text-amber-300"
+          >
+            <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+            BẢNG XẾP HẠNG
+          </Link>
         </div>
-        <Link
-          to="/login"
-          preload="intent"
-          className="shrink-0 rounded-sm border border-primary/50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-primary transition-all hover:border-primary hover:bg-primary/15 sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-[0.18em]"
-        >
-          {badge}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/leaderboard"
+            className="md:hidden flex items-center gap-1 rounded-sm border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-400"
+          >
+            BXH
+          </Link>
+          <Link
+            to="/login"
+            preload="intent"
+            className="shrink-0 rounded-sm border border-primary/50 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-primary transition-all hover:border-primary hover:bg-primary/15 sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-[0.18em]"
+          >
+            {badge}
+          </Link>
+        </div>
       </div>
     </header>
   )

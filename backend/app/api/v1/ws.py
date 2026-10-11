@@ -69,3 +69,23 @@ async def team_websocket_endpoint(
     except Exception as exc:
         logger.warning(f"WebSocket error on team {team_id}: {exc}")
         ws_manager.disconnect(team_id, websocket)
+
+
+@router.websocket("/ws/leaderboard")
+async def leaderboard_websocket_endpoint(websocket: WebSocket):
+    """
+    Kênh WebSocket công khai theo dõi Bảng Xếp Hạng trực tiếp (real-time).
+    Không yêu cầu JWT token (dành cho màn hình trình chiếu hoặc khán giả/đội thi).
+    """
+    await ws_manager.connect_public(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        ws_manager.disconnect_public(websocket)
+    except Exception as exc:
+        logger.warning(f"Public WebSocket error: {exc}")
+        ws_manager.disconnect_public(websocket)
+

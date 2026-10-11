@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router"
-import { Shield, Radio, LogOut, Award } from "lucide-react"
+import { Shield, Radio, LogOut, Award, Trophy } from "lucide-react"
 import logoImage from "../../assets/logo.png"
 import { useAuth } from "../../context/useAuth"
 
@@ -43,7 +43,17 @@ export function GameHeader({ currentStageNumber, isWsConnected }: GameHeaderProp
         </div>
 
         {/* Right: Team info, WS connection & Sign out */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Leaderboard button */}
+          <Link
+            to="/leaderboard"
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-400 transition-all hover:border-amber-500/60 hover:bg-amber-500/20"
+            title="Xem Bảng Xếp Hạng Trực Tiếp"
+          >
+            <Trophy className="size-3.5" />
+            <span className="hidden md:inline">BẢNG XẾP HẠNG</span>
+          </Link>
+
           {/* WS Realtime badge */}
           <div
             className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${

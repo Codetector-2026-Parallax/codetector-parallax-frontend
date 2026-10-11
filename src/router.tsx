@@ -42,7 +42,19 @@ const gameRoute = createRoute({
   component: lazyRouteComponent(() => import("./pages/GameWorkspacePage")),
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, emptyRoute, gameRoute])
+const leaderboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/leaderboard",
+  component: lazyRouteComponent(() => import("./pages/LeaderboardPage")),
+})
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  loginRoute,
+  emptyRoute,
+  gameRoute,
+  leaderboardRoute,
+])
 
 export const router = createRouter({
   routeTree,

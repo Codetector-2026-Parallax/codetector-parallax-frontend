@@ -88,6 +88,17 @@ async def submit_answers(
             }
         )
 
+        # Phát tín hiệu cập nhật Bảng xếp hạng cho toàn bộ các đội thi (Realtime Leaderboard)
+        await ws_manager.broadcast_all(
+            {
+                "event": "LEADERBOARD_UPDATED",
+                "team_id": team.id,
+                "team_name": team.team_name,
+                "completed_stage": stage.stage_number,
+                "new_stage": team.current_stage,
+            }
+        )
+
         return SubmitResponse(
             is_correct=True,
             message="Chính xác! Đội của bạn đã giải mã thành công và bước sang màn tiếp theo.",

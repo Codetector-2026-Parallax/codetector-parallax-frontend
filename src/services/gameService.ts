@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient"
-import type { QueryResult, StageData, SubmitResponse } from "../types/game"
+import type { LeaderboardResponse, QueryResult, StageData, SubmitResponse } from "../types/game"
 
 export async function getCurrentStage(): Promise<StageData> {
   return await apiClient.get<StageData>("/api/v1/stages/current")
@@ -16,3 +16,8 @@ export async function submitStageAnswers(
     answers,
   })
 }
+
+export async function getLeaderboard(): Promise<LeaderboardResponse> {
+  return await apiClient.get<LeaderboardResponse>("/api/v1/leaderboard")
+}
+

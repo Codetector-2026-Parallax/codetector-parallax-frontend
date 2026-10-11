@@ -6,6 +6,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.sandbox import router as sandbox_router
 from app.api.v1.stages import router as stages_router
 from app.api.v1.submissions import router as submissions_router
+from app.api.v1.leaderboard import router as leaderboard_router
 from app.api.v1.ws import router as ws_router
 from app.config import settings
 
@@ -48,6 +49,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(stages_router, prefix="/api/v1")
 app.include_router(sandbox_router, prefix="/api/v1")
 app.include_router(submissions_router, prefix="/api/v1")
+app.include_router(leaderboard_router, prefix="/api/v1")
 app.include_router(ws_router)
 
 

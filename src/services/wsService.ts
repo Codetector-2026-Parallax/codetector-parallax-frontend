@@ -1,7 +1,9 @@
 import { WS_BASE_URL, getStoredToken } from "./apiClient"
-import type { WsStageClearedEvent, WsSyncStateEvent } from "../types/game"
+import type { WsLeaderboardUpdatedEvent, WsStageClearedEvent, WsSyncStateEvent } from "../types/game"
 
-type WsEventListener = (event: WsStageClearedEvent | WsSyncStateEvent | Record<string, unknown>) => void
+type WsEventListener = (
+  event: WsStageClearedEvent | WsSyncStateEvent | WsLeaderboardUpdatedEvent | Record<string, unknown>
+) => void
 
 class WebSocketService {
   private socket: WebSocket | null = null
@@ -11,11 +13,11 @@ class WebSocketService {
   private isExplicitlyClosed = false
 
   public connect(): void {
-    const token = getStoredToken()
-    if (!token) return
-
     this.isExplicitlyClosed = false
-    const wsUrl = `${WS_BASE_URL}/ws/team?token=${encodeURIComponent(token)}`
+    const token = getStoredToken()
+    const wsUrl = token
+      ? `${WS_BASE_URL}/ws/team?token=${encodeURIComponent(token)}`
+      : `${WS_BASE_URL}/ws/leaderboard`
 
     try {
       this.socket = new WebSocket(wsUrl)

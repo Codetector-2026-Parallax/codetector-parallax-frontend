@@ -64,3 +64,29 @@ export interface WsSyncStateEvent {
   current_stage: number
   message: string
 }
+
+export interface LeaderboardItem {
+  rank: number
+  team_id: number
+  team_name: string
+  username: string
+  current_stage: number
+  completed_stages_count: number
+  stage_1_completed_at?: string | null
+  stage_2_completed_at?: string | null
+  is_finished: boolean
+  last_completed_at?: string | null
+}
+
+export interface LeaderboardResponse {
+  total_stages: number
+  leaderboard: LeaderboardItem[]
+}
+
+export interface WsLeaderboardUpdatedEvent {
+  event: "LEADERBOARD_UPDATED"
+  team_id: number
+  team_name: string
+  stage_number: number
+}
+
