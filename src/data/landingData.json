@@ -112,6 +112,7 @@
     "intro": "Tại bảo tàng Aureum, những hiện vật quý giá đã bị đánh cắp ngay trước ngày triển lãm. Một hồ sơ chuyên án bí ẩn đã được gửi đến riêng cho Đội Thám tử V.",
     "quickFacts": [
       { "label": "Hiện trường", "value": "Bảo tàng Aureum" },
+      { "label": "Hiện vật bị mất", "value": "Viên ngọc Parallax", "highlight": true },
       { "label": "Đối tượng tình nghi", "value": "Nhân vật bí ẩn - \"NULL\"", "alert": true }
     ],
     "crimeScene": {

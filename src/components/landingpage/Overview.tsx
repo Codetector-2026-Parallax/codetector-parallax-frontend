@@ -25,8 +25,9 @@ function CaseDossier() {
         intro={intro}
       />
 
+      {/* Quick facts */}
       <div className="content-panel mt-7 border-y border-primary/40 px-1 py-4 sm:mt-8 sm:py-5">
-        <div className="grid min-w-0 grid-cols-1 gap-4 text-xs sm:grid-cols-2 sm:gap-0">
+        <div className="grid min-w-0 grid-cols-1 gap-4 text-xs sm:grid-cols-3 sm:gap-0">
           {quickFacts.map((fact, index) => (
             <div key={index} className="space-y-1 border-l border-border/50 pl-4 sm:first:border-l-0">
               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -34,7 +35,11 @@ function CaseDossier() {
               </span>
               <p
                 className={`font-semibold sm:text-sm ${
-                  fact.alert ? "font-mono font-bold text-destructive" : "text-foreground"
+                  fact.alert
+                    ? "font-mono font-bold text-destructive"
+                    : fact.highlight
+                    ? "text-primary"
+                    : "text-foreground"
                 }`}
               >
                 {fact.value}
@@ -45,6 +50,7 @@ function CaseDossier() {
       </div>
 
       <div className="mt-7 grid min-w-0 items-stretch gap-6 sm:mt-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-6">
+        {/* Crime scene */}
         <div className="content-panel min-w-0 rounded-2xl border border-primary/45 p-5 shadow-[0_0_25px_rgba(202,160,82,0.14)] flex flex-col justify-between sm:p-7">
           <div>
             <div className="flex items-center justify-between pb-4 border-b border-border/60">
@@ -81,6 +87,7 @@ function CaseDossier() {
           </div>
         </div>
 
+        {/* Adversary NULL */}
         <div className="content-panel min-w-0 rounded-2xl border border-destructive/45 p-5 shadow-[0_0_25px_rgba(202,80,60,0.12)] flex flex-col justify-between sm:p-6">
           <div>
             <div className="flex items-center justify-between pb-4 border-b border-border/60">
