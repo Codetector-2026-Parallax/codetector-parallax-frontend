@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: codetector_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_password
+      POSTGRES_DB: codetector
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d codetector"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: codetector_backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codetector_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres_password@postgres:5432/codetector
+      SANDBOX_DATABASE_URL: postgresql+asyncpg://game_player:game_player_password@postgres:5432/codetector
+      SECRET_KEY: super-secret-key-change-this-in-production-codetector-2026-parallax
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      ENVIRONMENT: development
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://127.0.0.1:5173"]'
+    volumes:
+      - .:/app
+
+volumes:
+  postgres_data:
