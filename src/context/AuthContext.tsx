@@ -1,72 +1,60 @@
-import { useEffect, useState, useMemo, type ReactNode } from "react"
-import type { Session, User } from "@supabase/supabase-js"
-import { supabase } from "../lib/supabase"
-import { signOut as authSignOut } from "../services/authService"
+import { useEffect, useState, useMemo, useCallback, type ReactNode } from "react"
+import {
+  getCurrentTeam,
+  signOut as authSignOut,
+} from "../services/authService"
+import { getStoredToken } from "../services/apiClient"
+import type { TeamProfile } from "../types/game"
 import { AuthContext, type AuthContextValue } from "./authContextBase"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
+  const [team, setTeam] = useState<TeamProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    let isMounted = true
-
-    async function initializeAuth() {
-      try {
-        const { data } = await supabase.auth.getSession()
-        if (isMounted) {
-          setSession(data.session)
-          setUser(data.session?.user ?? null)
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
+  const refreshTeam = useCallback(async () => {
+    const token = getStoredToken()
+    if (!token) {
+      setTeam(null)
+      setIsLoading(false)
+      return
     }
 
-    initializeAuth()
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession)
-      setUser(newSession?.user ?? null)
+    try {
+      const currentTeam = await getCurrentTeam()
+      setTeam(currentTeam)
+    } catch {
+      setTeam(null)
+    } finally {
       setIsLoading(false)
-    })
-
-    return () => {
-      isMounted = false
-      subscription.unsubscribe()
     }
   }, [])
 
+  useEffect(() => {
+    refreshTeam()
+  }, [refreshTeam])
+
   const username = useMemo(() => {
-    if (!user) return null
-    if (typeof user.user_metadata?.username === "string") {
-      return user.user_metadata.username
-    }
-    if (user.email) {
-      return user.email.split("@")[0]
-    }
-    return null
-  }, [user])
+    return team?.team_name || team?.username || null
+  }, [team])
+
+  const token = useMemo(() => {
+    return getStoredToken()
+  }, [team])
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      user,
-      session,
+      team,
       username,
       isLoading,
-      isAuthenticated: !!user,
+      token,
+      isAuthenticated: !!team,
+      refreshTeam,
       signOut: async () => {
         await authSignOut()
-        setSession(null)
-        setUser(null)
+        setTeam(null)
       },
     }),
-    [user, session, username, isLoading]
+    [team, username, isLoading, token, refreshTeam]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

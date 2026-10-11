@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 export function LoginForm() {
   const navigate = useNavigate()
-  const { isAuthenticated, username: activeUser, signOut } = useAuth()
+  const { isAuthenticated, username: activeUser, signOut, refreshTeam } = useAuth()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success">("idle")
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -50,10 +50,11 @@ export function LoginForm() {
         setErrorMessage(formatAuthError(error))
         return
       }
+      await refreshTeam()
       setSubmitStatus("success")
       redirectTimeoutRef.current = setTimeout(() => {
-        navigate({ to: "/empty" })
-      }, 1000)
+        navigate({ to: "/game" })
+      }, 800)
     },
   })
 
@@ -69,7 +70,7 @@ export function LoginForm() {
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
-              onClick={() => navigate({ to: "/empty" })}
+              onClick={() => navigate({ to: "/game" })}
               className="flex h-11 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-xs font-bold uppercase tracking-[0.16em] text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 active:scale-[0.98]"
             >
               Bắt đầu phá án

@@ -1,58 +1,56 @@
-import type { AuthError, Session, User } from "@supabase/supabase-js"
-import { supabase } from "../lib/supabase"
+import {
+  apiClient,
+  getStoredToken,
+  setStoredToken,
+  removeStoredToken,
+} from "./apiClient"
+import type { LoginResponse, TeamProfile } from "../types/game"
 
-const AUTH_DOMAIN = import.meta.env.AUTH_DOMAIN || "codetector.internal"
-
-export function formatUsernameToEmail(username: string): string {
-  const trimmed = username.trim().toLowerCase()
-  return trimmed.includes("@") ? trimmed : `${trimmed}@${AUTH_DOMAIN}`
-}
-
-export function formatAuthError(error: AuthError | Error | unknown): string {
-  if (!error || typeof error !== "object") {
+export function formatAuthError(error: Error | unknown): string {
+  if (!error) {
     return "Đăng nhập thất bại. Vui lòng thử lại."
   }
-
-  const message = "message" in error && typeof error.message === "string" ? error.message : ""
-
-  if (message.includes("Invalid login credentials")) {
-    return "Tên đăng nhập hoặc mật khẩu không chính xác."
+  if (error instanceof Error) {
+    return error.message
   }
-
-  if (message.includes("Email not confirmed")) {
-    return "Tài khoản chưa được kích hoạt bởi Ban tổ chức."
+  if (typeof error === "string") {
+    return error
   }
-
-  if (message.includes("Too many requests") || message.includes("rate limit")) {
-    return "Quá nhiều lần thử thất bại. Vui lòng chờ ít phút trước khi thử lại."
-  }
-
-  if (message.includes("Failed to fetch") || message.includes("NetworkError")) {
-    return "Không thể kết nối tới máy chủ. Vui lòng kiểm tra đường truyền mạng."
-  }
-
   return "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin hoặc liên hệ BTC."
 }
 
-export async function signInWithUsername(username: string, password: string) {
-  const email = formatUsernameToEmail(username)
-  return await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+export async function signInWithUsername(
+  username: string,
+  password: string
+): Promise<{ data: LoginResponse | null; error: Error | null }> {
+  try {
+    const data = await apiClient.post<LoginResponse>("/api/v1/auth/login", {
+      username: username.trim(),
+      password,
+    })
+    if (data.access_token) {
+      setStoredToken(data.access_token)
+    }
+    return { data, error: null }
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error("Đăng nhập thất bại"),
+    }
+  }
 }
 
-export async function signOut() {
-  return await supabase.auth.signOut()
+export async function signOut(): Promise<void> {
+  removeStoredToken()
 }
 
-export async function getSession(): Promise<Session | null> {
-  const { data } = await supabase.auth.getSession()
-  return data.session
+export async function getCurrentTeam(): Promise<TeamProfile | null> {
+  const token = getStoredToken()
+  if (!token) return null
+  try {
+    return await apiClient.get<TeamProfile>("/api/v1/auth/me")
+  } catch {
+    removeStoredToken()
+    return null
+  }
 }
-
-export async function getCurrentUser(): Promise<User | null> {
-  const { data } = await supabase.auth.getUser()
-  return data.user
-}
-
