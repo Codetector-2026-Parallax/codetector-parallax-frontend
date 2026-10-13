@@ -11,7 +11,24 @@ docker compose restart backend
 
 Lệnh cập nhật giữ nguyên tiến độ đội và lịch sử nộp bài. Trong schema hiện tại, `Stage.stage_number` và `Team.current_stage` lưu số thứ tự **câu hỏi**; giá trị 4 nghĩa là đã hoàn thành cả 3 câu của Chặng 1. API `/api/v1/stages/outline` cung cấp mục lục và trạng thái khóa. Đáp án chuẩn chỉ nằm ở backend.
 
-Nguồn nội dung: https://docs.google.com/document/d/1mOwiM3ZAX_bEYCAwm2aFpmgzf5KP4-sFVkOtAgne3TE/edit
+Nguồn nội dung: https://docs.google.com/document/d/1kT8z4ftLiFw9ELOl9EfQv8e4NIYJYWbZQvmXFnV5mpo/edit
+
+### Nạp dữ liệu MuniDB
+
+`munidb_challenge.sql` chuyển cú pháp SQL Server của `munidb (1).sql` sang PostgreSQL. Script chỉ thay schema `challenge`, giữ nguyên tài khoản, tiến độ và lịch sử bài nộp trong schema `app`. Các bảng và dữ liệu `challenge` cũ được đổi tên thành schema sao lưu; nếu nhập lỗi, toàn bộ giao dịch rollback.
+
+Theo lựa chọn của người tổ chức, các mã trong dữ liệu đã được hoán đổi để khớp đáp án Docs: hợp đồng của Nam là `41` (hợp đồng xe `30A-23456` chuyển sang `40`), giao dịch ATM của Nam là `702` (giao dịch của Thu chuyển sang `701`). Nội dung bằng chứng giữ nguyên.
+
+Chạy từ thư mục `backend` bằng PowerShell, đặt tên schema mới và sao lưu riêng cho mỗi lần nhập:
+
+```powershell
+docker compose cp ./munidb_challenge.sql postgres:/tmp/munidb_challenge.sql
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -v target_schema=challenge_import_20261013 -v backup_schema=challenge_backup_20261013 -U postgres -d codetector -f /tmp/munidb_challenge.sql
+docker compose exec backend python -m seed.seed_chapter_1
+docker compose restart backend
+```
+
+Chọn tên schema chưa tồn tại để tránh ghi đè bản sao lưu. Sau khi nhập, đối chiếu đáp án câu hỏi với mã thực tế trong dữ liệu trước khi mở thi.
 
 Hệ thống Backend xây dựng bằng **FastAPI** và **PostgreSQL** phục vụ giải đấu CTF Trinh thám Parallax 2026:
 - 🛡️ **SQL Sandbox an toàn:** Phân quyền qua role PostgreSQL `game_player` (chỉ đọc trên schema `challenge`, giới hạn statement timeout 3s).

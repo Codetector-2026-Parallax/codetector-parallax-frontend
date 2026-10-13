@@ -50,7 +50,7 @@ export async function getCurrentTeam(): Promise<TeamProfile | null> {
   try {
     return await apiClient.get<TeamProfile>("/api/v1/auth/me")
   } catch {
-    removeStoredToken()
+    // request() clears the token on 401; transient connection failures keep it.
     return null
   }
 }

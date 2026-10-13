@@ -1,8 +1,11 @@
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000"
+  (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "")
 
 export const WS_BASE_URL =
-  import.meta.env.VITE_WS_URL || "ws://localhost:8000"
+  (import.meta.env.VITE_WS_URL || "").trim().replace(/\/+$/, "") ||
+  (API_BASE_URL.startsWith("http")
+    ? API_BASE_URL.replace(/^http/, "ws")
+    : `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}${API_BASE_URL}`)
 
 const TOKEN_KEY = "codetector_access_token"
 
@@ -51,10 +54,15 @@ export async function request<T>(
     headers["Authorization"] = `Bearer ${token}`
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  })
+  let response: Response
+  try {
+    response = await fetch(url, { ...options, headers })
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error("Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.", { cause: error })
+    }
+    throw error
+  }
 
   // Handle 401 unauthorized
   if (response.status === 401) {
@@ -62,7 +70,9 @@ export async function request<T>(
   }
 
   if (!response.ok) {
-    let errorDetail = `Lỗi yêu cầu (${response.status})`
+    let errorDetail = response.status >= 500
+      ? "Máy chủ đang tạm thời không phản hồi. Vui lòng thử lại sau ít phút."
+      : `Lỗi yêu cầu (${response.status})`
     try {
       const errJson = await response.json()
       if (errJson && errJson.detail) {

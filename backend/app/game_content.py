@@ -2,11 +2,11 @@
 
 CHAPTER_NUMBER = 1
 CHAPTER_TITLE = "Truy tìm thủ phạm"
-CASE_DESCRIPTION = """Bảo tàng X, tọa lạc tại số 25 đường Y, vừa báo cáo mất trộm một báu vật vô cùng quý giá (Ấn vàng). Vụ việc đã được ghi nhận trong hệ thống cơ sở dữ liệu của thành phố (MuniDB) tại bảng Theft_report với mã báo cáo id_report = 1.
+CASE_DESCRIPTION = """Bảo tàng X (số 25 đường Y) báo cáo mất trộm "Ấn vàng" (id_report = 1) vào ngày 10/10/2026. Hệ thống ghi nhận dữ liệu kỹ thuật gồm rất nhiều biến động về xe cộ, giao dịch tài chính và lượt ra vào bảo tàng trong khung giờ chiều.
 
-Đội ngũ điều tra được cung cấp quyền truy vấn cơ sở dữ liệu MuniDB. Bằng cách viết các câu lệnh SQL kết hợp phân tích lời khai nhân chứng (witness_statement), hãy khảo sát cấu trúc và mối quan hệ giữa các bảng về lịch trình di chuyển, phương tiện, giao dịch tài chính và nhật ký ra vào bảo tàng.
+Đội ngũ điều tra được cung cấp quyền truy vấn cơ sở dữ liệu MuniDB. Dữ liệu kỹ thuật chứa rất nhiều bẫy nhiễu: nhiều xe màu đỏ tẩu thoát cùng lúc, nhiều giao dịch ATM trùng giờ và nhiều người cùng vào phòng trưng bày do đổi ca. Nếu chỉ dùng câu lệnh SQL thuần túy, bạn có thể sa vào ma trận nghi án oan sai.
 
-Vượt qua các dữ liệu nhiễu và bẫy logic để tìm ra đúng một nghi phạm duy nhất khớp hoàn toàn với chuỗi hành vi phạm tội. Trả lời đúng từng câu theo thứ tự để mở khóa câu tiếp theo."""
+Yêu cầu bắt buộc: Kết hợp phân tích hệ thống lời khai nhân chứng (witness_statement), đặc biệt là các lời khai số 1, 5, 6, 15 và 16, để phá giải các bẫy logic và truy tìm ra đúng một nghi phạm duy nhất. Trả lời đúng từng câu theo thứ tự để mở khóa câu tiếp theo."""
 
 QUESTIONS = [
     {

@@ -71,6 +71,8 @@ npm run dev
 
 Truy cập giao diện Web tại: 👉 **[http://localhost:5173](http://localhost:5173)**
 
+Frontend gọi API và WebSocket qua cùng địa chỉ đang mở trên trình duyệt; Vite chuyển tiếp `/api/v1` và `/ws` tới backend. Cách này dùng được khi Vite đổi cổng, mở bằng IP máy hoặc qua Cloudflare tunnel. Nếu backend chạy ở địa chỉ khác, đặt `API_PROXY_TARGET` trong `.env.local` theo `.env.example`. Khi triển khai frontend và backend riêng, cấu hình `VITE_API_URL` (và `VITE_WS_URL` nếu cần) trước khi build; backend cần cho phép đúng origin frontend.
+
 ---
 
 ## 🔑 TÀI KHOẢN ĐĂNG NHẬP THỬ NGHIỆM

@@ -41,7 +41,7 @@ interface RelationWire {
   label: string
 }
 
-// Schema MuniDB, đối chiếu với sqljs (2).sql.
+// Schema MuniDB, đối chiếu với munidb (1).sql.
 const INITIAL_TABLES: TableNode[] = [
   {
     id: "User",
@@ -478,7 +478,7 @@ export function ErdVisualizerPanel({ onInsertToEditor, reservePaneControls = tru
       <div className={`flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/70 py-2 pl-3.5 ${reservePaneControls ? "pr-24" : "pr-3.5"}`}>
         <div className="flex items-center gap-2">
           <Database className="size-4 text-primary" />
-          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground" title="Cấu trúc theo sqljs (2).sql">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground" title="Cấu trúc theo munidb (1).sql">
             MuniDB <span className="font-normal text-muted-foreground">· {INITIAL_TABLES.length} bảng</span>
           </h2>
         </div>
@@ -709,7 +709,7 @@ export function ErdVisualizerPanel({ onInsertToEditor, reservePaneControls = tru
                       <button
                         key={col.name}
                         type="button"
-                        onClick={() => handleCopy(`${table.name}.${col.name}`)}
+                        onClick={() => handleCopy(`${table.name === "User" ? '"user"' : table.name.toLowerCase()}.${col.name}`)}
                         className="group w-full flex items-center justify-between px-2.5 py-1 hover:bg-white/[0.06] transition-colors text-left"
                         title="Bấm để copy tên cột vào SQL"
                       >
