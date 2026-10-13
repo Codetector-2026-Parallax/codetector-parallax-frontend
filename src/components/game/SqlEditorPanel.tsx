@@ -8,12 +8,6 @@ interface SqlEditorPanelProps {
   isRunning: boolean
 }
 
-const TEMPLATE_QUERIES = [
-  { label: "Xem toàn bộ Cổ vật", sql: "SELECT * FROM artifacts;" },
-  { label: "Nhật ký truy cập gần nhất", sql: "SELECT * FROM access_logs ORDER BY log_time DESC LIMIT 20;" },
-  { label: "Tìm nghi phạm tiềm năng", sql: "SELECT * FROM suspects;" },
-]
-
 export function SqlEditorPanel({
   sql,
   onChangeSql,
@@ -50,33 +44,17 @@ export function SqlEditorPanel({
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1)
 
   return (
-    <div className="content-panel flex h-full flex-col rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
+    <div className="content-panel @container flex h-full flex-col rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
       {/* Header & Action Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/60 px-4 py-2.5">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/60 py-2.5 pl-4 pr-24">
         <div className="flex items-center gap-2">
           <Code2 className="size-4 text-primary" />
           <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
-            IDE // SQL SANDBOX
+            IDE
           </h2>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Quick templates */}
-          <div className="hidden sm:flex items-center gap-1">
-            {TEMPLATE_QUERIES.map((tmpl) => (
-              <button
-                key={tmpl.label}
-                type="button"
-                onClick={() => onChangeSql(tmpl.sql)}
-                className="rounded px-2 py-1 text-[11px] font-mono text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors"
-              >
-                {tmpl.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-4 w-px bg-border/60 hidden sm:block" />
-
           {/* Clear button */}
           <button
             type="button"
@@ -128,7 +106,7 @@ export function SqlEditorPanel({
             onChange={(e) => onChangeSql(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="-- Viết câu lệnh SQL truy vấn điều tra tại đây...
--- Ví dụ: SELECT * FROM artifacts WHERE status = 'MISSING';"
+-- Ví dụ: SELECT * FROM theft_report WHERE id_report = 1;"
             spellCheck={false}
             className="size-full resize-none border-none bg-transparent p-3 font-mono text-xs sm:text-sm text-foreground/95 placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 leading-6 custom-scrollbar"
           />

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react"
+import { useState, useRef, useMemo, useEffect } from "react"
 import {
   Database,
   ZoomIn,
@@ -7,6 +7,7 @@ import {
   Table2,
   Key,
   Infinity as InfinityIcon,
+  Scan,
 } from "lucide-react"
 
 interface ColumnDef {
@@ -40,333 +41,276 @@ interface RelationWire {
   label: string
 }
 
-// 10 Bảng định vị theo đúng bố cục không gian diagram của SQL Server
+// Schema MuniDB, đối chiếu với sqljs (2).sql.
 const INITIAL_TABLES: TableNode[] = [
-  // 1. Call_log (Góc trên bên trái)
+  {
+    id: "User",
+    name: "User",
+    displayName: "Hồ sơ nhân vật",
+    x: 380,
+    y: 380,
+    width: 280,
+    color: {header: "bg-purple-950/60 text-purple-300",border: "border-purple-500/50",badge: "text-purple-400 bg-purple-500/10"},
+    columns: [
+      {name: "id_user",type: "int",isPk: true},
+      {name: "name",type: "nvarchar(100)"},
+      {name: "gender",type: "nvarchar(20)"},
+      {name: "age",type: "int"},
+      {name: "dob",type: "date"},
+      {name: "job",type: "nvarchar(100)"},
+      {name: "address",type: "nvarchar(255)"},
+    ],
+  },
+  {
+    id: "Museum",
+    name: "Museum",
+    displayName: "Bảo tàng",
+    x: 1400,
+    y: 380,
+    width: 280,
+    color: {header: "bg-amber-950/60 text-amber-300",border: "border-amber-500/40",badge: "text-amber-400 bg-amber-500/10"},
+    columns: [
+      {name: "id_museum",type: "int",isPk: true},
+      {name: "name",type: "nvarchar(100)"},
+      {name: "address",type: "nvarchar(255)"},
+    ],
+  },
+  {
+    id: "Room",
+    name: "Room",
+    displayName: "Phòng trưng bày",
+    x: 1060,
+    y: 380,
+    width: 280,
+    color: {header: "bg-amber-950/60 text-amber-300",border: "border-amber-500/40",badge: "text-amber-400 bg-amber-500/10"},
+    columns: [
+      {name: "id_room",type: "int",isPk: true},
+      {name: "id_museum",type: "int",isFk: true},
+      {name: "name",type: "nvarchar(100)"},
+    ],
+  },
+  {
+    id: "artifact",
+    name: "artifact",
+    displayName: "Hiện vật",
+    x: 1060,
+    y: 1060,
+    width: 280,
+    color: {header: "bg-amber-950/60 text-amber-300",border: "border-amber-500/40",badge: "text-amber-400 bg-amber-500/10"},
+    columns: [
+      {name: "id_artifact",type: "int",isPk: true},
+      {name: "id_room",type: "int",isFk: true},
+      {name: "name",type: "nvarchar(100)"},
+    ],
+  },
+  {
+    id: "Theft_report",
+    name: "Theft_report",
+    displayName: "Báo cáo mất trộm",
+    x: 1400,
+    y: 1060,
+    width: 280,
+    color: {header: "bg-amber-950/60 text-amber-300",border: "border-amber-500/40",badge: "text-amber-400 bg-amber-500/10"},
+    columns: [
+      {name: "id_report",type: "int",isPk: true},
+      {name: "id_artifact",type: "int",isFk: true},
+      {name: "last_seen_at",type: "datetime2"},
+      {name: "discovered_at",type: "datetime2"},
+    ],
+  },
+  {
+    id: "Carpark",
+    name: "Carpark",
+    displayName: "Bãi đỗ xe",
+    x: 1060,
+    y: 720,
+    width: 280,
+    color: {header: "bg-blue-950/60 text-blue-300",border: "border-blue-500/40",badge: "text-blue-400 bg-blue-500/10"},
+    columns: [
+      {name: "id_carpark",type: "int",isPk: true},
+      {name: "id_museum",type: "int",isFk: true},
+      {name: "name",type: "nvarchar(100)"},
+      {name: "address",type: "nvarchar(255)"},
+    ],
+  },
+  {
+    id: "Car",
+    name: "Car",
+    displayName: "Phương tiện",
+    x: 380,
+    y: 720,
+    width: 280,
+    color: {header: "bg-blue-950/60 text-blue-300",border: "border-blue-500/40",badge: "text-blue-400 bg-blue-500/10"},
+    columns: [
+      {name: "id_car",type: "int",isPk: true},
+      {name: "plate_number",type: "varchar(20)"},
+      {name: "brand",type: "nvarchar(50)"},
+      {name: "create_date",type: "date"},
+      {name: "is_rental",type: "bit"},
+      {name: "color",type: "nvarchar(50)"},
+    ],
+  },
+  {
+    id: "carPark_History",
+    name: "carPark_History",
+    displayName: "Lịch sử bãi đỗ",
+    x: 720,
+    y: 720,
+    width: 280,
+    color: {header: "bg-blue-950/60 text-blue-300",border: "border-blue-500/40",badge: "text-blue-400 bg-blue-500/10"},
+    columns: [
+      {name: "id_location",type: "int",isFk: true},
+      {name: "id_car",type: "int",isPk: true,isFk: true},
+      {name: "entrance_time",type: "datetime2",isPk: true},
+      {name: "exit_time",type: "datetime2"},
+      {name: "camera_code",type: "varchar(50)"},
+    ],
+  },
+  {
+    id: "carRental",
+    name: "carRental",
+    displayName: "Hợp đồng thuê xe",
+    x: 40,
+    y: 720,
+    width: 280,
+    color: {header: "bg-blue-950/60 text-blue-300",border: "border-blue-500/40",badge: "text-blue-400 bg-blue-500/10"},
+    columns: [
+      {name: "id_rental",type: "int",isPk: true},
+      {name: "id_car",type: "int",isFk: true},
+      {name: "id_dealer",type: "int",isFk: true},
+      {name: "id_renter",type: "int",isFk: true},
+      {name: "id_driver",type: "int",isFk: true},
+      {name: "rental_time",type: "datetime2"},
+      {name: "return_time",type: "datetime2"},
+      {name: "organization",type: "nvarchar(100)"},
+    ],
+  },
+  {
+    id: "ATM",
+    name: "ATM",
+    displayName: "Cây ATM",
+    x: 1060,
+    y: 40,
+    width: 280,
+    color: {header: "bg-emerald-950/60 text-emerald-300",border: "border-emerald-500/40",badge: "text-emerald-400 bg-emerald-500/10"},
+    columns: [
+      {name: "id_atm",type: "int",isPk: true},
+      {name: "name",type: "nvarchar(100)"},
+      {name: "address",type: "nvarchar(255)"},
+    ],
+  },
+  {
+    id: "ATM_Transaction",
+    name: "ATM_Transaction",
+    displayName: "Giao dịch ATM",
+    x: 720,
+    y: 40,
+    width: 280,
+    color: {header: "bg-emerald-950/60 text-emerald-300",border: "border-emerald-500/40",badge: "text-emerald-400 bg-emerald-500/10"},
+    columns: [
+      {name: "transaction_id",type: "int",isPk: true},
+      {name: "person_id",type: "int",isFk: true},
+      {name: "atm_id",type: "int",isFk: true},
+      {name: "transaction_time",type: "datetime2"},
+      {name: "amount",type: "decimal(18,2)"},
+    ],
+  },
   {
     id: "Call_log",
     name: "Call_log",
     displayName: "Nhật ký cuộc gọi",
     x: 40,
-    y: 30,
-    width: 210,
-    color: {
-      header: "bg-red-950/60 text-red-300",
-      border: "border-red-500/40",
-      badge: "text-red-400 bg-red-500/10",
-    },
+    y: 40,
+    width: 280,
+    color: {header: "bg-purple-950/60 text-purple-300",border: "border-purple-500/50",badge: "text-purple-400 bg-purple-500/10"},
     columns: [
-      { name: "id_call", type: "int", isPk: true },
-      { name: "calling_time", type: "datetime" },
-      { name: "id_caller", type: "varchar", isFk: true },
-      { name: "id_receiver", type: "varchar", isFk: true },
-      { name: "duration_time", type: "float" },
+      {name: "id_call",type: "int",isPk: true},
+      {name: "calling_time",type: "datetime2"},
+      {name: "id_caller",type: "int",isFk: true},
+      {name: "id_receiver",type: "int",isFk: true},
+      {name: "duration_time",type: "float"},
     ],
   },
-
-  // 2. User (Bảng nhân vật trung tâm bên trái)
-  {
-    id: "User",
-    name: "User",
-    displayName: "Hồ sơ nhân vật",
-    x: 100,
-    y: 260,
-    width: 210,
-    color: {
-      header: "bg-purple-950/60 text-purple-300",
-      border: "border-purple-500/50",
-      badge: "text-purple-400 bg-purple-500/10",
-    },
-    columns: [
-      { name: "id_user", type: "int", isPk: true },
-      { name: "name", type: "varchar" },
-      { name: "gender", type: "varchar" },
-      { name: "age", type: "int" },
-      { name: "dob", type: "date" },
-      { name: "job", type: "varchar" },
-    ],
-  },
-
-  // 3. ATM_Transaction (Phía trên giữa)
-  {
-    id: "ATM_Transaction",
-    name: "ATM_Transaction",
-    displayName: "Giao dịch ATM",
-    x: 360,
-    y: 30,
-    width: 210,
-    color: {
-      header: "bg-emerald-950/60 text-emerald-300",
-      border: "border-emerald-500/40",
-      badge: "text-emerald-400 bg-emerald-500/10",
-    },
-    columns: [
-      { name: "transaction_id", type: "int", isPk: true },
-      { name: "person_id", type: "int", isFk: true },
-      { name: "atm_id", type: "int", isFk: true },
-      { name: "transaction_time", type: "datetime" },
-      { name: "amount", type: "decimal" },
-    ],
-  },
-
-  // 4. ATM (Góc trên bên phải)
-  {
-    id: "ATM",
-    name: "ATM",
-    displayName: "Cây ATM",
-    x: 660,
-    y: 30,
-    width: 190,
-    color: {
-      header: "bg-emerald-950/40 text-emerald-400",
-      border: "border-emerald-500/30",
-      badge: "text-emerald-400 bg-emerald-500/10",
-    },
-    columns: [
-      { name: "id_atm", type: "int", isPk: true },
-      { name: "name", type: "varchar" },
-      { name: "address", type: "varchar" },
-    ],
-  },
-
-  // 5. Museum_log (Trung tâm)
   {
     id: "Museum_log",
     name: "Museum_log",
     displayName: "Nhật ký bảo tàng",
-    x: 420,
-    y: 260,
-    width: 210,
-    color: {
-      header: "bg-amber-950/60 text-amber-300",
-      border: "border-amber-500/50",
-      badge: "text-amber-400 bg-amber-500/10",
-    },
+    x: 720,
+    y: 380,
+    width: 280,
+    color: {header: "bg-amber-950/60 text-amber-300",border: "border-amber-500/40",badge: "text-amber-400 bg-amber-500/10"},
     columns: [
-      { name: "id_visit", type: "int", isPk: true },
-      { name: "id_user", type: "int", isFk: true },
-      { name: "id_museum", type: "int", isFk: true },
-      { name: "id_room", type: "int" },
-      { name: "event_type", type: "varchar" },
-      { name: "recorded_at", type: "datetime" },
+      {name: "id_visit",type: "int",isPk: true},
+      {name: "id_user",type: "int",isFk: true},
+      {name: "id_room",type: "int",isFk: true},
+      {name: "event_type",type: "varchar(20)"},
+      {name: "recorded_at",type: "datetime2"},
     ],
   },
-
-  // 6. Museum (Bên phải giữa)
   {
-    id: "Museum",
-    name: "Museum",
-    displayName: "Bảo tàng Aureum",
-    x: 740,
-    y: 220,
-    width: 200,
-    color: {
-      header: "bg-amber-950/40 text-amber-400",
-      border: "border-amber-500/30",
-      badge: "text-amber-400 bg-amber-500/10",
-    },
+    id: "witness_statement",
+    name: "witness_statement",
+    displayName: "Lời khai nhân chứng",
+    x: 40,
+    y: 380,
+    width: 280,
+    color: {header: "bg-purple-950/60 text-purple-300",border: "border-purple-500/50",badge: "text-purple-400 bg-purple-500/10"},
     columns: [
-      { name: "id_museum", type: "int", isPk: true },
-      { name: "name", type: "varchar" },
-      { name: "address", type: "varchar" },
-    ],
-  },
-
-  // 7. carRental (Góc dưới bên trái)
-  {
-    id: "carRental",
-    name: "carRental",
-    displayName: "Hợp đồng thuê xe",
-    x: 30,
-    y: 500,
-    width: 220,
-    color: {
-      header: "bg-cyan-950/60 text-cyan-300",
-      border: "border-cyan-500/40",
-      badge: "text-cyan-400 bg-cyan-500/10",
-    },
-    columns: [
-      { name: "id_rental", type: "int", isPk: true },
-      { name: "id_car", type: "int", isFk: true },
-      { name: "id_dealer", type: "int" },
-      { name: "id_renter", type: "int", isFk: true },
-      { name: "id_driver", type: "int", isFk: true },
-      { name: "rental_time", type: "datetime" },
-      { name: "return_time", type: "datetime" },
-      { name: "organization", type: "varchar" },
-    ],
-  },
-
-  // 8. Car (Dưới giữa)
-  {
-    id: "Car",
-    name: "Car",
-    displayName: "Phương tiện xe",
-    x: 350,
-    y: 540,
-    width: 200,
-    color: {
-      header: "bg-blue-950/60 text-blue-300",
-      border: "border-blue-500/40",
-      badge: "text-blue-400 bg-blue-500/10",
-    },
-    columns: [
-      { name: "id_car", type: "int", isPk: true },
-      { name: "plate_number", type: "varchar" },
-      { name: "brand", type: "varchar" },
-      { name: "create_date", type: "date" },
-      { name: "is_rental", type: "bit" },
-      { name: "color", type: "varchar" },
-    ],
-  },
-
-  // 9. carPark_History (Dưới bên phải)
-  {
-    id: "carPark_History",
-    name: "carPark_History",
-    displayName: "Camera bãi đỗ xe",
-    x: 630,
-    y: 540,
-    width: 210,
-    color: {
-      header: "bg-blue-950/60 text-blue-300",
-      border: "border-blue-500/40",
-      badge: "text-blue-400 bg-blue-500/10",
-    },
-    columns: [
-      { name: "id_location", type: "var", isPk: true },
-      { name: "id_carpark", type: "int", isFk: true },
-      { name: "id_car", type: "int", isFk: true },
-      { name: "entrace_time", type: "datetime" },
-      { name: "exit_time", type: "datetime" },
-      { name: "camera_code", type: "varchar" },
-    ],
-  },
-
-  // 10. Carpark (Góc dưới ngoài cùng bên phải)
-  {
-    id: "Carpark",
-    name: "Carpark",
-    displayName: "Bãi đỗ xe",
-    x: 800,
-    y: 400,
-    width: 190,
-    color: {
-      header: "bg-blue-950/40 text-blue-300",
-      border: "border-blue-500/30",
-      badge: "text-blue-400 bg-blue-500/10",
-    },
-    columns: [
-      { name: "id_carpark", type: "int", isPk: true },
-      { name: "id_museum", type: "int", isFk: true },
-      { name: "name", type: "varchar" },
-      { name: "address", type: "varchar" },
+      {name: "id_statement",type: "int",isPk: true},
+      {name: "id_witness",type: "int",isFk: true},
+      {name: "statement_text",type: "nvarchar(max)"},
+      {name: "recorded_at",type: "datetime2"},
     ],
   },
 ]
 
-// Các đường dây liên kết quan hệ (Relationship Wires)
 const RELATION_WIRES: RelationWire[] = [
-  // Call_log -> User
-  {
-    id: "call_user",
-    fromTable: "User",
-    fromCol: "id_user",
-    toTable: "Call_log",
-    toCol: "id_caller",
-    label: "1 : N (Cuộc gọi)",
-  },
-  // ATM_Transaction -> User
-  {
-    id: "atm_user",
-    fromTable: "User",
-    fromCol: "id_user",
-    toTable: "ATM_Transaction",
-    toCol: "person_id",
-    label: "1 : N (Người rút)",
-  },
-  // ATM_Transaction -> ATM
-  {
-    id: "atm_trans_atm",
-    fromTable: "ATM",
-    fromCol: "id_atm",
-    toTable: "ATM_Transaction",
-    toCol: "atm_id",
-    label: "1 : N (Cây ATM)",
-  },
-  // Museum_log -> User
-  {
-    id: "museum_user",
-    fromTable: "User",
-    fromCol: "id_user",
-    toTable: "Museum_log",
-    toCol: "id_user",
-    label: "1 : N (Khách quẹt thẻ)",
-  },
-  // Museum_log -> Museum
-  {
-    id: "museum_log_museum",
-    fromTable: "Museum",
-    fromCol: "id_museum",
-    toTable: "Museum_log",
-    toCol: "id_museum",
-    label: "1 : N (Bảo tàng)",
-  },
-  // Carpark -> Museum
-  {
-    id: "carpark_museum",
-    fromTable: "Museum",
-    fromCol: "id_museum",
-    toTable: "Carpark",
-    toCol: "id_museum",
-    label: "1 : N (Bãi xe)",
-  },
-  // carPark_History -> Carpark
-  {
-    id: "history_carpark",
-    fromTable: "Carpark",
-    fromCol: "id_carpark",
-    toTable: "carPark_History",
-    toCol: "id_carpark",
-    label: "1 : N (Bãi đỗ)",
-  },
-  // carPark_History -> Car
-  {
-    id: "history_car",
-    fromTable: "Car",
-    fromCol: "id_car",
-    toTable: "carPark_History",
-    toCol: "id_car",
-    label: "1 : N (Xe vào bãi)",
-  },
-  // carRental -> Car
-  {
-    id: "rental_car",
-    fromTable: "Car",
-    fromCol: "id_car",
-    toTable: "carRental",
-    toCol: "id_car",
-    label: "1 : N (Xe được thuê)",
-  },
-  // carRental -> User
-  {
-    id: "rental_user",
-    fromTable: "User",
-    fromCol: "id_user",
-    toTable: "carRental",
-    toCol: "id_renter",
-    label: "1 : N (Người đứng tên thuê)",
-  },
+  {id: "Room_id_museum",fromTable: "Museum",fromCol: "id_museum",toTable: "Room",toCol: "id_museum",label: "Museum.id_museum → Room.id_museum"},
+  {id: "artifact_id_room",fromTable: "Room",fromCol: "id_room",toTable: "artifact",toCol: "id_room",label: "Room.id_room → artifact.id_room"},
+  {id: "Theft_report_id_artifact",fromTable: "artifact",fromCol: "id_artifact",toTable: "Theft_report",toCol: "id_artifact",label: "artifact.id_artifact → Theft_report.id_artifact"},
+  {id: "Carpark_id_museum",fromTable: "Museum",fromCol: "id_museum",toTable: "Carpark",toCol: "id_museum",label: "Museum.id_museum → Carpark.id_museum"},
+  {id: "carPark_History_id_location",fromTable: "Carpark",fromCol: "id_carpark",toTable: "carPark_History",toCol: "id_location",label: "Carpark.id_carpark → carPark_History.id_location"},
+  {id: "carPark_History_id_car",fromTable: "Car",fromCol: "id_car",toTable: "carPark_History",toCol: "id_car",label: "Car.id_car → carPark_History.id_car"},
+  {id: "carRental_id_car",fromTable: "Car",fromCol: "id_car",toTable: "carRental",toCol: "id_car",label: "Car.id_car → carRental.id_car"},
+  {id: "carRental_id_dealer",fromTable: "User",fromCol: "id_user",toTable: "carRental",toCol: "id_dealer",label: "User.id_user → carRental.id_dealer"},
+  {id: "carRental_id_renter",fromTable: "User",fromCol: "id_user",toTable: "carRental",toCol: "id_renter",label: "User.id_user → carRental.id_renter"},
+  {id: "carRental_id_driver",fromTable: "User",fromCol: "id_user",toTable: "carRental",toCol: "id_driver",label: "User.id_user → carRental.id_driver"},
+  {id: "ATM_Transaction_person_id",fromTable: "User",fromCol: "id_user",toTable: "ATM_Transaction",toCol: "person_id",label: "User.id_user → ATM_Transaction.person_id"},
+  {id: "ATM_Transaction_atm_id",fromTable: "ATM",fromCol: "id_atm",toTable: "ATM_Transaction",toCol: "atm_id",label: "ATM.id_atm → ATM_Transaction.atm_id"},
+  {id: "Call_log_id_caller",fromTable: "User",fromCol: "id_user",toTable: "Call_log",toCol: "id_caller",label: "User.id_user → Call_log.id_caller"},
+  {id: "Call_log_id_receiver",fromTable: "User",fromCol: "id_user",toTable: "Call_log",toCol: "id_receiver",label: "User.id_user → Call_log.id_receiver"},
+  {id: "Museum_log_id_user",fromTable: "User",fromCol: "id_user",toTable: "Museum_log",toCol: "id_user",label: "User.id_user → Museum_log.id_user"},
+  {id: "Museum_log_id_room",fromTable: "Room",fromCol: "id_room",toTable: "Museum_log",toCol: "id_room",label: "Room.id_room → Museum_log.id_room"},
+  {id: "witness_statement_id_witness",fromTable: "User",fromCol: "id_user",toTable: "witness_statement",toCol: "id_witness",label: "User.id_user → witness_statement.id_witness"},
 ]
 
 interface ErdVisualizerPanelProps {
   onInsertToEditor?: (text: string) => void
+  reservePaneControls?: boolean
 }
 
-export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps) {
+function fitDiagram(tables: TableNode[], width: number, height: number) {
+  const left = Math.min(...tables.map((table) => table.x))
+  const top = Math.min(...tables.map((table) => table.y))
+  const right = Math.max(...tables.map((table) => table.x + table.width))
+  const bottom = Math.max(...tables.map((table) => table.y + 36 + table.columns.length * 24))
+  const zoom = Math.max(0.12, Math.min(1.4, (width - 32) / (right - left), (height - 32) / (bottom - top)))
+  return {
+    zoom,
+    pan: { x: (width - (right - left) * zoom) / 2 - left * zoom, y: (height - (bottom - top) * zoom) / 2 - top * zoom },
+  }
+}
+
+function readingView(table: TableNode, width: number) {
+  const zoom = Math.max(0.85, Math.min(1, (width - 48) / table.width))
+  return { zoom, pan: { x: 24 - table.x * zoom, y: 24 - table.y * zoom } }
+}
+
+export function ErdVisualizerPanel({ onInsertToEditor, reservePaneControls = true }: ErdVisualizerPanelProps) {
   const [tables, setTables] = useState<TableNode[]>(INITIAL_TABLES)
-  const [zoom, setZoom] = useState(0.85)
-  const [pan, setPan] = useState({ x: 20, y: 10 })
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: -356, y: -356 })
+  const [focusedTable, setFocusedTable] = useState("User")
   const [isPanning, setIsPanning] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const [draggingTableId, setDraggingTableId] = useState<string | null>(null)
@@ -375,6 +319,21 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
   const [hoveredTableId, setHoveredTableId] = useState<string | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const observer = new ResizeObserver(() => {
+      const { width, height } = container.getBoundingClientRect()
+      if (width <= 32 || height <= 32) return
+      const view = readingView(INITIAL_TABLES[0], width)
+      setZoom(view.zoom)
+      setPan(view.pan)
+      observer.disconnect()
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [])
 
   // Map vị trí các table để vẽ đường nối
   const tableMap = useMemo(() => {
@@ -436,9 +395,40 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
 
   // Reset view
   const handleResetView = () => {
-    setZoom(0.85)
-    setPan({ x: 20, y: 10 })
     setTables(INITIAL_TABLES)
+    setFocusedTable("User")
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const view = readingView(INITIAL_TABLES[0], rect.width)
+    setZoom(view.zoom)
+    setPan(view.pan)
+  }
+
+  const handleFocusTable = (id: string) => {
+    const table = tables.find((node) => node.id === id)
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!table || !rect) return
+    const view = readingView(table, rect.width)
+    setFocusedTable(id)
+    setZoom(view.zoom)
+    setPan(view.pan)
+  }
+
+  const handleZoom = (delta: number) => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const nextZoom = Math.max(0.12, Math.min(1.4, zoom + delta))
+    const center = { x: rect.width / 2, y: rect.height / 2 }
+    setPan({ x: center.x - (center.x - pan.x) / zoom * nextZoom, y: center.y - (center.y - pan.y) / zoom * nextZoom })
+    setZoom(nextZoom)
+  }
+
+  const handleFitView = (nodes = tables) => {
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const view = fitDiagram(nodes, rect.width, rect.height)
+    setZoom(view.zoom)
+    setPan(view.pan)
   }
 
   const handleCopy = (text: string) => {
@@ -456,12 +446,13 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
       if (!fromT || !toT) return null
 
       // Điểm neo bắt đầu (From Table)
-      const fromX = fromT.x + fromT.width / 2
-      const fromY = fromT.y + 40 // anchor near PK
+      const forward = toT.x >= fromT.x
+      const fromX = fromT.x + (forward ? fromT.width : 0)
+      const fromY = fromT.y + 43 + fromT.columns.findIndex((col) => col.name === wire.fromCol) * 24
 
       // Điểm neo kết thúc (To Table)
-      const toX = toT.x + toT.width / 2
-      const toY = toT.y + 60 // anchor near FK
+      const toX = toT.x + (forward ? 0 : toT.width)
+      const toY = toT.y + 43 + toT.columns.findIndex((col) => col.name === wire.toCol) * 24
 
       // Tính điểm điều khiển Bezier curve (Cubic Bezier)
       const dx = toX - fromX
@@ -482,22 +473,31 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
   }, [tableMap])
 
   return (
-    <div className="content-panel flex h-full flex-col rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
+    <div className="content-panel @container flex h-full flex-col rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
       {/* Top Toolbar (SQL Server Style) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/70 px-3.5 py-2">
+      <div className={`flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/70 py-2 pl-3.5 ${reservePaneControls ? "pr-24" : "pr-3.5"}`}>
         <div className="flex items-center gap-2">
           <Database className="size-4 text-primary" />
-          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
-            SQL SERVER DIAGRAM // SƠ ĐỒ QUAN HỆ 10 BẢNG
+          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground" title="Cấu trúc theo sqljs (2).sql">
+            MuniDB <span className="font-normal text-muted-foreground">· {INITIAL_TABLES.length} bảng</span>
           </h2>
         </div>
 
         {/* Zoom & View Controls */}
         <div className="flex items-center gap-1.5 font-mono text-xs">
+          <button
+            type="button"
+            onClick={() => handleFitView()}
+            title="Vừa khung: hiển thị toàn bộ sơ đồ"
+            className="flex items-center gap-1 rounded-lg border border-border/70 bg-secondary/40 px-2 py-1 text-[11px] text-muted-foreground transition-colors hover:text-primary"
+          >
+            <Scan className="size-3.5" />
+            <span>Vừa khung</span>
+          </button>
           <div className="flex items-center rounded-lg border border-border/70 bg-secondary/40 p-0.5">
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.min(1.4, z + 0.1))}
+              onClick={() => handleZoom(0.1)}
               title="Phóng to"
               className="p-1 hover:text-primary transition-colors"
             >
@@ -508,7 +508,7 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
             </span>
             <button
               type="button"
-              onClick={() => setZoom((z) => Math.max(0.4, z - 0.1))}
+              onClick={() => handleZoom(-0.1)}
               title="Thu nhỏ"
               className="p-1 hover:text-primary transition-colors"
             >
@@ -523,25 +523,33 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
             className="flex items-center gap-1 rounded-lg border border-border/70 bg-secondary/40 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
           >
             <RotateCcw className="size-3" />
-            <span>Reset</span>
+            <span>Đặt lại</span>
           </button>
         </div>
       </div>
 
       {/* Legend & Hint Bar */}
-      <div className="flex items-center justify-between border-b border-border/40 bg-primary/[0.02] px-3.5 py-1 text-[11px] font-mono text-muted-foreground">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/40 bg-primary/[0.02] px-3.5 py-2 text-[11px] text-muted-foreground">
+        <select
+          aria-label="Đi đến bảng"
+          value={focusedTable}
+          onChange={(event) => handleFocusTable(event.target.value)}
+          className="h-7 max-w-44 rounded-md border border-border/60 bg-[#111318] px-2 font-mono text-[11px] text-foreground outline-none focus:border-primary"
+        >
+          {tables.map((table) => <option key={table.id} value={table.id}>{table.name}</option>)}
+        </select>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <Key className="size-3 text-amber-400" />
-            <strong className="text-amber-400">1</strong> (Phía Khóa chính)
+            <span>Khóa chính</span>
           </span>
           <span className="flex items-center gap-1">
             <InfinityIcon className="size-3 text-cyan-400" />
-            <strong className="text-cyan-400">∞</strong> (Phía Khóa ngoại N)
+            <span>Khóa ngoại</span>
           </span>
         </div>
-        <span className="text-primary hidden sm:inline">
-          💡 Bạn có thể giữ chuột kéo bàn cờ (Pan) & di chuyển từng bảng (Drag)
+        <span className="hidden text-muted-foreground/70 @min-[700px]:inline">
+          Kéo nền để di chuyển · Kéo tiêu đề để sắp xếp bảng
         </span>
       </div>
 
@@ -551,6 +559,7 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
         onMouseDown={handleMouseDownCanvas}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
         className={`relative flex-1 overflow-hidden bg-[#0a0b0e] select-none ${
           isPanning ? "cursor-grabbing" : "cursor-grab"
         }`}
@@ -566,8 +575,8 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: "0 0",
-            width: "1200px",
-            height: "900px",
+            width: "2000px",
+            height: "1500px",
             position: "absolute",
             top: 0,
             left: 0,
@@ -601,7 +610,7 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
                 hoveredTableId === wire.toTable
 
               return (
-                <g key={wire.id} className="cursor-pointer pointer-events-auto">
+                <g key={wire.id} data-relation={wire.id} className="cursor-pointer pointer-events-auto">
                   {/* Thick Invisible Path for easy hover */}
                   <path
                     d={wire.pathData}
@@ -660,6 +669,7 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
               return (
                 <div
                   key={table.id}
+                  data-table={table.name}
                   style={{
                     position: "absolute",
                     left: `${table.x}px`,
@@ -681,12 +691,13 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
                     onMouseDown={(e) => handleMouseDownTable(e, table)}
                     className={`flex cursor-move items-center justify-between border-b border-border/50 px-2.5 py-1.5 rounded-t-lg select-none ${table.color.header}`}
                   >
-                    <div className="flex items-center gap-1.5 font-mono text-xs font-bold truncate">
+                    <div className="flex min-w-0 items-center gap-1.5 font-mono text-xs font-bold">
                       <Table2 className="size-3.5 shrink-0" />
-                      <span className="truncate">{table.name}</span>
+                      <span className="truncate" title={table.name}>{table.name}</span>
                     </div>
                     <span
-                      className={`rounded px-1 text-[9px] font-mono font-medium ${table.color.badge}`}
+                      className={`max-w-28 shrink-0 truncate rounded px-1 text-[9px] font-mono font-medium ${table.color.badge}`}
+                      title={table.displayName}
                     >
                       {table.displayName}
                     </span>
@@ -705,12 +716,13 @@ export function ErdVisualizerPanel({ onInsertToEditor }: ErdVisualizerPanelProps
                         <div className="flex items-center gap-1.5 truncate">
                           {col.isPk ? (
                             <Key className="size-3 text-amber-400 shrink-0" />
-                          ) : col.isFk ? (
+                          ) : !col.isFk ? (
+                            <span className="size-3 block shrink-0" />
+                          ) : null}
+                          {col.isFk && (
                             <span className="rounded bg-cyan-500/20 px-0.5 text-[8px] font-bold text-cyan-400 border border-cyan-500/30">
                               FK
                             </span>
-                          ) : (
-                            <span className="size-3 block shrink-0" />
                           )}
                           <span
                             className={`truncate ${

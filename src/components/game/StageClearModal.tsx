@@ -5,6 +5,7 @@ interface StageClearModalProps {
   completedStageNumber: number
   nextStageNumber: number
   nextTitle: string
+  chapterCompleted?: boolean
   onClose: () => void
 }
 
@@ -13,6 +14,7 @@ export function StageClearModal({
   completedStageNumber,
   nextStageNumber,
   nextTitle,
+  chapterCompleted = false,
   onClose,
 }: StageClearModalProps) {
   if (!isOpen) return null
@@ -25,29 +27,28 @@ export function StageClearModal({
         </div>
 
         <h3 className="mt-4 font-display text-2xl sm:text-3xl font-bold text-foreground">
-          PHÁ GIẢI THÀNH CÔNG!
+          {chapterCompleted ? "HOÀN THÀNH CHẶNG 1!" : "GIẢI MÃ CHÍNH XÁC!"}
         </h3>
 
         <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-          Đội của bạn đã giải mã chính xác tất cả manh mối của{" "}
-          <span className="font-semibold text-primary">Màn {completedStageNumber}</span>.
+          {chapterCompleted ? "Đội đã trả lời đúng cả 3 câu hỏi và hoàn thành hồ sơ vụ trộm Bảo tàng X." : <>Đội đã trả lời đúng <span className="font-semibold text-primary">Câu {completedStageNumber}</span> của Chặng 1.</>}
         </p>
 
-        <div className="my-6 rounded-xl border border-border/80 bg-secondary/40 p-4 text-left space-y-1">
+        {!chapterCompleted && <div className="my-6 rounded-xl border border-border/80 bg-secondary/40 p-4 text-left space-y-1">
           <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-primary">
-            CHUYÊN ÁN TIẾP THEO:
+            CÂU HỎI ĐÃ MỞ KHÓA:
           </span>
           <p className="font-display text-base font-semibold text-foreground">
-            Màn {nextStageNumber}: {nextTitle}
+            Câu {nextStageNumber}: {nextTitle}
           </p>
-        </div>
+        </div>}
 
         <button
           type="button"
           onClick={onClose}
-          className="flex w-full h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold uppercase tracking-[0.16em] text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_rgba(202,160,82,0.3)] active:scale-[0.98]"
+          className="mt-6 flex w-full h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold uppercase tracking-[0.16em] text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_rgba(202,160,82,0.3)] active:scale-[0.98]"
         >
-          <span>TIẾP TỤC ĐIỀU TRA</span>
+          <span>{chapterCompleted ? "XEM LẠI HỒ SƠ" : "TIẾP TỤC ĐIỀU TRA"}</span>
           <ArrowRight className="size-4" />
         </button>
       </div>

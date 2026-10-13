@@ -31,6 +31,24 @@ export interface StageData {
   clues_guide?: string
   form_schema: FormSchemaField[]
   is_completed: boolean
+  chapter_number: number
+  question_number: number
+  total_questions: number
+  case_description: string
+}
+
+export interface ChapterOutline {
+  chapter_number: number
+  title: string
+  total_questions: number
+  completed_questions: number
+  current_question: number | null
+  is_completed: boolean
+  questions: {
+    question_number: number
+    title: string
+    status: "completed" | "current" | "locked"
+  }[]
 }
 
 export interface SubmitResponse {
@@ -38,6 +56,7 @@ export interface SubmitResponse {
   message: string
   next_stage?: number
   failed_fields?: string[]
+  chapter_completed?: boolean
 }
 
 export interface QueryResult {
@@ -55,6 +74,7 @@ export interface WsStageClearedEvent {
   next_stage: number
   next_title: string
   message: string
+  chapter_completed?: boolean
 }
 
 export interface WsSyncStateEvent {
@@ -74,12 +94,15 @@ export interface LeaderboardItem {
   completed_stages_count: number
   stage_1_completed_at?: string | null
   stage_2_completed_at?: string | null
+  stage_3_completed_at?: string | null
   is_finished: boolean
   last_completed_at?: string | null
 }
 
 export interface LeaderboardResponse {
   total_stages: number
+  total_questions: number
+  total_chapters: number
   leaderboard: LeaderboardItem[]
 }
 
@@ -88,5 +111,6 @@ export interface WsLeaderboardUpdatedEvent {
   team_id: number
   team_name: string
   stage_number: number
+  question_number?: number
 }
 

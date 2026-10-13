@@ -1,5 +1,13 @@
 import { apiClient } from "./apiClient"
-import type { LeaderboardResponse, QueryResult, StageData, SubmitResponse } from "../types/game"
+import type { ChapterOutline, LeaderboardResponse, QueryResult, StageData, SubmitResponse } from "../types/game"
+
+export function getChapterOutline(): Promise<ChapterOutline> {
+  return apiClient.get<ChapterOutline>("/api/v1/stages/outline")
+}
+
+export function getQuestion(questionNumber: number): Promise<StageData> {
+  return apiClient.get<StageData>(`/api/v1/stages/${questionNumber}`)
+}
 
 export async function getCurrentStage(): Promise<StageData> {
   return await apiClient.get<StageData>("/api/v1/stages/current")
@@ -10,10 +18,12 @@ export async function runSandboxQuery(sql: string): Promise<QueryResult> {
 }
 
 export async function submitStageAnswers(
-  answers: Record<string, string>
+  answers: Record<string, string>,
+  questionNumber: number,
 ): Promise<SubmitResponse> {
   return await apiClient.post<SubmitResponse>("/api/v1/submissions/submit", {
     answers,
+    question_number: questionNumber,
   })
 }
 

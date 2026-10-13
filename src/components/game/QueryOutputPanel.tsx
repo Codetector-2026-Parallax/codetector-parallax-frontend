@@ -20,7 +20,7 @@ export function QueryOutputPanel({ result, isRunning }: QueryOutputPanelProps) {
   return (
     <div className="content-panel flex h-full flex-col rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
       {/* Header with Stats */}
-      <div className="flex items-center justify-between border-b border-border/70 bg-card/60 px-4 py-2.5">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-card/60 py-2.5 pl-4 pr-24">
         <div className="flex items-center gap-2">
           <Table className="size-4 text-primary" />
           <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { FileText, FileEdit, HelpCircle, Loader2, Sparkles, ShieldAlert } from "lucide-react"
+import { FileText, FileEdit, Loader2 } from "lucide-react"
 import type { StageData, SubmitResponse } from "../../types/game"
 import { SubmissionDossierModal } from "./SubmissionDossierModal"
 
@@ -29,78 +29,76 @@ export function ProblemDossierPanel({
 
   return (
     <>
-      <div className="content-panel flex h-full flex-col rounded-xl border border-border/80 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#34312b] bg-[#121210] shadow-[0_2px_12px_rgba(0,0,0,0.12)]">
         {/* Panel Header */}
-        <div className="flex items-center justify-between border-b border-border/70 bg-card/60 px-4 py-3">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-[#302e28] bg-[#191916] pl-5 pr-16">
           <div className="flex items-center gap-2">
-            <FileText className="size-4 text-primary" />
-            <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
-              ĐỀ BÀI // HỒ SƠ VỤ ÁN
+            <FileText className="size-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-foreground">
+              Hồ sơ vụ án
             </h2>
           </div>
-          <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-primary">
-            GIAI ĐOẠN {stage.stage_number}
+          <span className="text-xs tabular-nums text-muted-foreground">
+            Câu {stage.question_number} / {stage.total_questions}
           </span>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-sm custom-scrollbar flex flex-col justify-between">
-          <div className="space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 text-sm custom-scrollbar sm:px-6">
+          <div className="space-y-7">
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Chặng 1 · Truy tìm thủ phạm</p>
+              <h3 className="font-display text-2xl font-semibold text-foreground">Vụ trộm Bảo tàng X</h3>
+              <p className="whitespace-pre-line text-sm leading-7 text-muted-foreground">{stage.case_description}</p>
+            </div>
             {/* Title & Story */}
-            <div className="space-y-2">
-              <h3 className="font-display text-lg sm:text-xl font-bold text-foreground">
+            <div className="space-y-3 border-t border-[#5b5548] pt-7">
+              <p className="text-xs font-medium text-muted-foreground">Câu hỏi {stage.question_number}</p>
+              <h3 className="font-sans text-base font-semibold leading-snug text-foreground sm:text-lg">
                 {stage.title}
               </h3>
-              <p className="leading-relaxed text-muted-foreground text-xs sm:text-sm">
+              <p className="whitespace-pre-line text-sm leading-7 text-foreground/90">
                 {stage.story_description}
               </p>
             </div>
 
             {/* Clues guide if available */}
             {stage.clues_guide && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-1.5 text-xs text-amber-200/90">
-                <div className="flex items-center gap-1.5 font-semibold text-amber-400">
-                  <HelpCircle className="size-3.5" />
-                  <span>GỢI Ý ĐIỀU TRA</span>
-                </div>
-                <p className="leading-relaxed">{stage.clues_guide}</p>
+              <div className="space-y-2 rounded-lg border border-[#323129] bg-[#1b1c18] px-4 py-3.5">
+                <h4 className="text-sm font-medium text-foreground/85">Định dạng trả lời</h4>
+                <p className="text-[13px] leading-7 text-muted-foreground">
+                  {stage.clues_guide.replace(/^Định dạng trả lời:\s*/i, "").split(/(\S+_\S+)/g).map((part, index) => (
+                    part.includes("_")
+                      ? <code key={index} className="break-words font-mono text-[13px] tracking-[0.08em] text-[#e0d3b7]">{part}</code>
+                      : part
+                  ))}
+                </p>
               </div>
             )}
           </div>
+        </div>
 
           {/* Call-to-action Card for Dossier Submission */}
-          <div className="rounded-xl border border-primary/40 bg-gradient-to-r from-primary/[0.08] via-primary/[0.03] to-transparent p-4 space-y-3 shadow-[0_0_25px_rgba(202,160,82,0.12)]">
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-primary">
-                  <Sparkles className="size-3.5" />
-                  <span>HỒ SƠ BÁO CÁO PHÁ ÁN</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Đã thu thập đủ manh mối từ SQL Sandbox? Mở hồ sơ báo cáo để điền kết quả và xác nhận qua màn.
-                </p>
-              </div>
-
-              <div className="hidden sm:flex size-9 items-center justify-center rounded-lg bg-primary/10 border border-primary/30 text-primary shrink-0">
-                <ShieldAlert className="size-4" />
-              </div>
-            </div>
-
+        <div className="shrink-0 border-t border-[#302e28] bg-[#161613] px-5 py-4 sm:px-6">
+          {stage.is_completed ? (
+            <p className="text-xs leading-6 text-muted-foreground">Bạn đã hoàn thành câu hỏi này. Chọn câu đang mở trong mục lục để tiếp tục điều tra.</p>
+          ) : (
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex w-full h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold font-mono uppercase tracking-[0.14em] text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_rgba(202,160,82,0.35)] active:scale-[0.99]"
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#736548] bg-[#3a3428] px-5 py-3 text-sm font-medium leading-5 text-[#eee5d2] transition-colors hover:border-[#96825b] hover:bg-[#484030] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#b39a6a]"
             >
               <FileEdit className="size-4" />
-              <span>ĐIỀN & NỘP HỒ SƠ PHÁ ÁN</span>
+              <span>Nộp báo cáo</span>
             </button>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Submission Popup Modal with Confirmation Step */}
       <SubmissionDossierModal
-        isOpen={isModalOpen}
+        key={stage.id}
+        isOpen={isModalOpen && !stage.is_completed}
         onClose={() => setIsModalOpen(false)}
         stage={stage}
         onSubmitAnswers={onSubmitAnswers}

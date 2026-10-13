@@ -89,7 +89,7 @@ export function SubmissionDossierModal({
                 HỒ SƠ BÁO CÁO PHÁ ÁN
               </h3>
               <p className="font-mono text-[11px] text-muted-foreground">
-                GIAI ĐOẠN {stage.stage_number}: {stage.title}
+                CHẶNG 1 · CÂU {stage.question_number}: {stage.title}
               </p>
             </div>
           </div>
@@ -179,7 +179,7 @@ export function SubmissionDossierModal({
                   <span>XÁC NHẬN GỬI HỒ SƠ PHÁ ÁN</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Bạn có chắc chắn muốn nộp các manh mối dưới đây không? Sau khi nộp thành công, kết quả sẽ được ghi nhận và **tự động đồng bộ sang màn tiếp theo cho toàn đội**.
+                  Xác nhận nộp đáp án cho câu hỏi này. Khi trả lời đúng, kết quả sẽ được ghi nhận và câu tiếp theo được mở khóa cho toàn đội.
                 </p>
               </div>
 

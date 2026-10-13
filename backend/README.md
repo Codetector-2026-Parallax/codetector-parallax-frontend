@@ -1,5 +1,18 @@
 # Codetector 2026 - Parallax Backend API
 
+## Chặng 1: Truy tìm thủ phạm
+
+Chặng 1 gồm 3 câu hỏi tuần tự. Cập nhật nội dung từ `app/game_content.py` bằng:
+
+```bash
+docker compose exec backend python -m seed.seed_chapter_1
+docker compose restart backend
+```
+
+Lệnh cập nhật giữ nguyên tiến độ đội và lịch sử nộp bài. Trong schema hiện tại, `Stage.stage_number` và `Team.current_stage` lưu số thứ tự **câu hỏi**; giá trị 4 nghĩa là đã hoàn thành cả 3 câu của Chặng 1. API `/api/v1/stages/outline` cung cấp mục lục và trạng thái khóa. Đáp án chuẩn chỉ nằm ở backend.
+
+Nguồn nội dung: https://docs.google.com/document/d/1mOwiM3ZAX_bEYCAwm2aFpmgzf5KP4-sFVkOtAgne3TE/edit
+
 Hệ thống Backend xây dựng bằng **FastAPI** và **PostgreSQL** phục vụ giải đấu CTF Trinh thám Parallax 2026:
 - 🛡️ **SQL Sandbox an toàn:** Phân quyền qua role PostgreSQL `game_player` (chỉ đọc trên schema `challenge`, giới hạn statement timeout 3s).
 - 📝 **Form chấm đáp án đa trường (Dynamic Form Validation):** Thí sinh phải điền đúng và đủ tất cả các manh mối mới được qua màn.

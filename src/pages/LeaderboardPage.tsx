@@ -58,7 +58,7 @@ export default function LeaderboardPage() {
       const maybeEvent = event as Partial<WsLeaderboardUpdatedEvent>
       if (maybeEvent.event === "LEADERBOARD_UPDATED" && maybeEvent.team_name) {
         setRecentNotification(
-          `⚡ Đội "${maybeEvent.team_name}" vừa hoàn thành Chặng ${maybeEvent.stage_number}!`
+          `⚡ Đội "${maybeEvent.team_name}" vừa hoàn thành Câu ${maybeEvent.question_number ?? ""} của Chặng 1!`
         )
         fetchLeaderboardData()
       }
@@ -107,8 +107,8 @@ export default function LeaderboardPage() {
     if (!data?.leaderboard) return { total: 0, completed2: 0, completed1: 0 }
     return {
       total: data.leaderboard.length,
-      completed2: data.leaderboard.filter((t) => t.completed_stages_count === 2).length,
-      completed1: data.leaderboard.filter((t) => t.completed_stages_count === 1).length,
+      completed2: data.leaderboard.filter((t) => t.is_finished).length,
+      completed1: data.leaderboard.filter((t) => t.completed_stages_count > 0 && !t.is_finished).length,
     }
   }, [data])
 
@@ -226,13 +226,13 @@ export default function LeaderboardPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-wider text-primary uppercase mb-2">
               <Trophy className="size-3.5 text-primary" />
-              BẢNG XẾP HẠNG TOÀN CUỘC (2 CHẶNG)
+              BẢNG XẾP HẠNG CHẶNG 1 (3 CÂU HỎI)
             </div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
               CUỘC ĐUA PHÁ ÁN REALTIME
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Cập nhật trực tiếp kết quả giải mã giữa các đội tham gia chuyên án Parallax qua 2 chặng thi đấu.
+              Cập nhật trực tiếp tiến độ giải 3 câu hỏi của Chặng 1: Truy tìm thủ phạm.
             </p>
           </div>
 
@@ -255,7 +255,7 @@ export default function LeaderboardPage() {
 
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-emerald-400 uppercase">Hoàn thành cả 2 chặng</p>
+              <p className="text-xs font-medium text-emerald-400 uppercase">Hoàn thành Chặng 1</p>
               <Sparkles className="size-4 text-emerald-400" />
             </div>
             <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">{stats.completed2}</p>
@@ -263,7 +263,7 @@ export default function LeaderboardPage() {
 
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-amber-400 uppercase">Hoàn thành 1 chặng</p>
+              <p className="text-xs font-medium text-amber-400 uppercase">Đang giải Chặng 1</p>
               <CheckCircle2 className="size-4 text-amber-400" />
             </div>
             <p className="mt-1 font-mono text-2xl font-bold text-amber-400">{stats.completed1}</p>
@@ -271,7 +271,7 @@ export default function LeaderboardPage() {
 
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 backdrop-blur-sm">
             <p className="text-xs font-medium text-primary uppercase">Tổng quy mô chặng</p>
-            <p className="mt-1 font-mono text-2xl font-bold text-primary">2 Chặng</p>
+            <p className="mt-1 font-mono text-2xl font-bold text-primary">1 Chặng · 3 Câu</p>
           </div>
         </div>
 
@@ -308,7 +308,7 @@ export default function LeaderboardPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Tiến độ:</span>
                         <span className="font-mono font-bold text-slate-300">
-                          {top3[1].completed_stages_count}/2 chặng
+                          {top3[1].completed_stages_count}/3 câu
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -353,7 +353,7 @@ export default function LeaderboardPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-amber-200/70">Tiến độ phá án:</span>
                         <span className="font-mono font-bold text-amber-400">
-                          {top3[0].completed_stages_count}/2 chặng
+                          {top3[0].completed_stages_count}/3 câu
                           {top3[0].is_finished && " (HOÀN TẤT)"}
                         </span>
                       </div>
@@ -396,7 +396,7 @@ export default function LeaderboardPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Tiến độ:</span>
                         <span className="font-mono font-bold text-amber-400">
-                          {top3[2].completed_stages_count}/2 chặng
+                          {top3[2].completed_stages_count}/3 câu
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -441,8 +441,9 @@ export default function LeaderboardPage() {
                 <tr className="border-b border-border/80 bg-secondary/30 font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="py-3.5 pl-6 pr-3 text-center w-16">Hạng</th>
                   <th className="py-3.5 px-4 min-w-[200px]">Đội thi</th>
-                  <th className="py-3.5 px-4 min-w-[170px]">Chặng 1 (Bảo tàng)</th>
-                  <th className="py-3.5 px-4 min-w-[170px]">Chặng 2 (Tẩu thoát)</th>
+                  <th className="py-3.5 px-4 min-w-[170px]">Câu 1 · Xe và hợp đồng</th>
+                  <th className="py-3.5 px-4 min-w-[170px]">Câu 2 · Giao dịch ATM</th>
+                  <th className="py-3.5 px-4 min-w-[170px]">Câu 3 · Thủ phạm</th>
                   <th className="py-3.5 px-4 text-center min-w-[130px]">Tiến độ</th>
                   <th className="py-3.5 pr-6 pl-4 text-right min-w-[140px]">Cán đích</th>
                 </tr>
@@ -450,14 +451,14 @@ export default function LeaderboardPage() {
               <tbody className="divide-y divide-border/50">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
                       <RefreshCw className="mx-auto size-6 animate-spin text-primary mb-2" />
                       Đang tải bảng xếp hạng...
                     </td>
                   </tr>
                 ) : filteredTeams.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
                       Không tìm thấy đội thi nào phù hợp.
                     </td>
                   </tr>
@@ -538,7 +539,7 @@ export default function LeaderboardPage() {
                             <div className="flex flex-col">
                               <span className="inline-flex items-center gap-1 font-semibold text-emerald-400">
                                 <CheckCircle2 className="size-3.5" />
-                                Đã tóm gọn
+                                Đã giải mã
                               </span>
                               <span className="font-mono text-[10px] text-muted-foreground">
                                 {formatTimestamp(item.stage_2_completed_at)}
@@ -547,28 +548,32 @@ export default function LeaderboardPage() {
                           ) : item.completed_stages_count >= 1 ? (
                             <span className="inline-flex items-center gap-1 text-amber-400/90 font-medium">
                               <Clock className="size-3.5 animate-pulse" />
-                              Đang truy bắt
+                              Đang điều tra
                             </span>
                           ) : (
                             <span className="text-muted-foreground/50">— Chưa mở</span>
                           )}
                         </td>
 
+                        <td className="py-4 px-4">
+                          {item.stage_3_completed_at ? (
+                            <div className="flex flex-col">
+                              <span className="inline-flex items-center gap-1 font-semibold text-emerald-400"><CheckCircle2 className="size-3.5" />Đã giải mã</span>
+                              <span className="font-mono text-[10px] text-muted-foreground">{formatTimestamp(item.stage_3_completed_at)}</span>
+                            </div>
+                          ) : <span className="text-muted-foreground/60">{item.completed_stages_count >= 2 ? "Đang điều tra" : "— Chưa mở"}</span>}
+                        </td>
+
                         {/* Progress */}
                         <td className="py-4 px-4 text-center">
                           <div className="inline-flex flex-col items-center gap-1 w-24">
                             <span className="font-mono font-bold text-xs">
-                              {item.completed_stages_count}/2
+                              {item.completed_stages_count}/3
                             </span>
                             <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
                               <div
-                                className={`h-full transition-all duration-500 ${
-                                  item.completed_stages_count === 2
-                                    ? "bg-emerald-400 w-full"
-                                    : item.completed_stages_count === 1
-                                    ? "bg-amber-400 w-1/2"
-                                    : "bg-transparent w-0"
-                                }`}
+                                className={`h-full transition-all duration-500 ${item.is_finished ? "bg-emerald-400" : "bg-amber-400"}`}
+                                style={{ width: `${item.completed_stages_count / 3 * 100}%` }}
                               />
                             </div>
                           </div>

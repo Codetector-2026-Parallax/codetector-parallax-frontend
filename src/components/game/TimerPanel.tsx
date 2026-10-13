@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Clock, Hourglass, Flame } from "lucide-react"
+import { Clock } from "lucide-react"
 
 interface TimerPanelProps {
   initialSeconds?: number
@@ -7,63 +7,41 @@ interface TimerPanelProps {
 
 export function TimerPanel({ initialSeconds = 45 * 60 }: TimerPanelProps) {
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds)
-  const [isActive] = useState(true)
 
   useEffect(() => {
-    if (!isActive || secondsLeft <= 0) return
-
     const interval = setInterval(() => {
-      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0))
+      setSecondsLeft((prev) => Math.max(0, prev - 1))
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [isActive, secondsLeft])
+  }, [])
 
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
   const formattedTime = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
 
-  const progressPercent = Math.max(0, Math.min(100, (secondsLeft / initialSeconds) * 100))
+  const progressPercent = initialSeconds > 0 ? Math.max(0, Math.min(100, (secondsLeft / initialSeconds) * 100)) : 0
+  const isUrgent = secondsLeft <= 5 * 60
 
   return (
-    <div className="content-panel flex h-full flex-col justify-between rounded-xl border border-border/80 p-4 sm:p-5 shadow-[0_0_20px_rgba(0,0,0,0.3)] overflow-hidden">
-      {/* Top: Header */}
-      <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
-        <div className="flex items-center gap-2">
-          <Clock className="size-4 text-primary animate-pulse" />
-          <h2 className="font-mono text-xs font-bold uppercase tracking-wider text-foreground">
-            TIMER // THỜI GIAN
-          </h2>
-        </div>
-        <div className="flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400 font-mono">
-          <Hourglass className="size-3" />
-          <span>VÒNG 1</span>
-        </div>
-      </div>
-
-      {/* Middle: Digital Countdown Display */}
-      <div className="my-auto py-3 text-center">
-        <div className="font-mono text-3xl sm:text-4xl font-extrabold tracking-widest text-primary drop-shadow-[0_0_15px_rgba(202,160,82,0.4)]">
-          {formattedTime}
-        </div>
-        <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-mono text-muted-foreground">
-          <Flame className="size-3 text-destructive animate-bounce" />
-          <span>CHUYÊN ÁN ĐANG DIỄN RA</span>
-        </div>
-      </div>
-
-      {/* Bottom: Progress Bar */}
-      <div className="space-y-1.5 pt-2 border-t border-border/50">
-        <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-          <span>TIẾN TRÌNH THỜI GIAN</span>
-          <span>{Math.round(progressPercent)}%</span>
-        </div>
-        <div className="h-1.5 w-full rounded-full bg-secondary/60 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-primary to-amber-300 transition-all duration-1000"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
+    <div
+      role="timer"
+      aria-label={`Thời gian còn lại: ${minutes} phút ${seconds} giây`}
+      aria-live="off"
+      title={secondsLeft === 0 ? "Đã hết thời gian" : "Thời gian phá án còn lại"}
+      className={`flex h-8 shrink-0 items-center gap-2 rounded-lg border px-2.5 font-mono ${isUrgent ? "border-red-400/40 bg-red-400/10 text-red-400" : "border-primary/30 bg-primary/5 text-primary"}`}
+    >
+      <Clock className="size-3.5 shrink-0" />
+      <span className="text-sm font-bold tabular-nums tracking-wider">{formattedTime}</span>
+      <div
+        role="progressbar"
+        aria-label="Thời gian còn lại"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progressPercent)}
+        className="hidden h-1 w-12 overflow-hidden rounded-full bg-secondary sm:block"
+      >
+        <div className="h-full rounded-full bg-current transition-[width] duration-1000" style={{ width: `${progressPercent}%` }} />
       </div>
     </div>
   )

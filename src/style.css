@@ -167,6 +167,37 @@
   background-clip: padding-box;
 }
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #514b3f #121210;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: #121210;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid #121210;
+  border-radius: 8px;
+  background: #514b3f;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #706650;
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 @media (max-width: 640px) {
   .content-panel {
     background: color-mix(in oklab, var(--color-background) 88%, transparent);

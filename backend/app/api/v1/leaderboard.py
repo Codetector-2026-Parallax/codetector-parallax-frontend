@@ -8,6 +8,7 @@ from app.models.stage import Stage
 from app.models.submission import Submission
 from app.models.team import Team
 from app.schemas.game import LeaderboardItem, LeaderboardResponse
+from app.game_content import TOTAL_QUESTIONS
 
 router = APIRouter(prefix="/leaderboard", tags=["Leaderboard"])
 
@@ -18,9 +19,7 @@ async def get_leaderboard(
 ):
     """
     Lấy bảng xếp hạng thời gian thực giữa các đội thi.
-    Cuộc thi gồm đúng 2 chặng:
-    - Xếp hạng ưu tiên theo: Số chặng hoàn thành (2 > 1 > 0).
-    - Nếu bằng chặng: Đội hoàn thành sớm hơn (thời gian nộp bài đúng cuối cùng) xếp trước.
+    Chặng 1 gồm 3 câu hỏi. Ưu tiên số câu hoàn thành, rồi thời gian nộp đúng.
     """
     # 1. Lấy tất cả đội chơi đang hoạt động
     team_stmt = select(Team).where(Team.is_active == True)
@@ -28,7 +27,7 @@ async def get_leaderboard(
     teams: List[Team] = list(team_res.scalars().all())
 
     # 2. Lấy thông tin các màn chơi (lấy stage_id theo stage_number)
-    stages_stmt = select(Stage.id, Stage.stage_number).order_by(Stage.stage_number)
+    stages_stmt = select(Stage.id, Stage.stage_number).where(Stage.stage_number.between(1, TOTAL_QUESTIONS)).order_by(Stage.stage_number)
     stages_res = await db.execute(stages_stmt)
     stage_id_to_num = {row[0]: row[1] for row in stages_res.all()}
 
@@ -59,32 +58,24 @@ async def get_leaderboard(
         times = team_stage_times.get(t.id, {})
         s1_time: Optional[datetime] = times.get(1)
         s2_time: Optional[datetime] = times.get(2)
+        s3_time: Optional[datetime] = times.get(3)
 
-        completed_count = 0
-        if s2_time:
-            completed_count = 2
-            last_time = s2_time
-        elif s1_time:
-            completed_count = 1
-            last_time = s1_time
-        else:
-            completed_count = 0
-            last_time = None
-
-        # Hoàn thành nếu đã qua 2 chặng hoặc current_stage > 2
-        is_finished = (completed_count >= 2) or (t.current_stage > 2)
+        completed_count = max(0, min(TOTAL_QUESTIONS, t.current_stage - 1))
+        last_time = times.get(completed_count)
+        is_finished = completed_count == TOTAL_QUESTIONS
 
         items_raw.append(
             {
                 "team_id": t.id,
                 "team_name": t.team_name,
                 "username": t.username,
-                "current_stage": min(t.current_stage, 3),
+                "current_stage": min(t.current_stage, TOTAL_QUESTIONS + 1),
                 "completed_stages_count": completed_count,
-                "stage_1_completed_at": s1_time.strftime("%H:%M:%S") if s1_time else None,
-                "stage_2_completed_at": s2_time.strftime("%H:%M:%S") if s2_time else None,
+                "stage_1_completed_at": s1_time.isoformat() if s1_time else None,
+                "stage_2_completed_at": s2_time.isoformat() if s2_time else None,
+                "stage_3_completed_at": s3_time.isoformat() if s3_time else None,
                 "last_completed_at_dt": last_time,
-                "last_completed_at": last_time.strftime("%H:%M:%S") if last_time else None,
+                "last_completed_at": last_time.isoformat() if last_time else None,
                 "is_finished": is_finished,
             }
         )
@@ -114,9 +105,10 @@ async def get_leaderboard(
                 completed_stages_count=item["completed_stages_count"],
                 stage_1_completed_at=item["stage_1_completed_at"],
                 stage_2_completed_at=item["stage_2_completed_at"],
+                stage_3_completed_at=item["stage_3_completed_at"],
                 is_finished=item["is_finished"],
                 last_completed_at=item["last_completed_at"],
             )
         )
 
-    return LeaderboardResponse(total_stages=2, leaderboard=leaderboard_items)
+    return LeaderboardResponse(total_stages=TOTAL_QUESTIONS, total_questions=TOTAL_QUESTIONS, leaderboard=leaderboard_items)
