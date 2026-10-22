@@ -164,18 +164,33 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 >
                   INVESTIGATION QUESTION #{q.questionNumber} OF 8
                 </span>
-                <span
-                  className={[
-                    'cp-sticker-badge',
-                    q.status === 'DONE'
-                      ? 'cp-sticker-badge-success'
-                      : q.status === 'FAILED'
-                        ? 'cp-sticker-badge-error'
-                        : 'cp-sticker-badge-running',
-                  ].join(' ')}
-                >
-                  STATUS: {q.status.replace('_', ' ')}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {q.targetDatabase && (
+                    <span
+                      className="cp-sticker-badge"
+                      style={{
+                        backgroundColor: 'var(--color-canvas)',
+                        color: 'var(--color-primary)',
+                        borderColor: 'var(--color-primary)',
+                      }}
+                      title={`Cơ sở dữ liệu câu hỏi: ${q.targetDatabase}`}
+                    >
+                      🗄️ {q.targetDatabase}
+                    </span>
+                  )}
+                  <span
+                    className={[
+                      'cp-sticker-badge',
+                      q.status === 'DONE'
+                        ? 'cp-sticker-badge-success'
+                        : q.status === 'FAILED'
+                          ? 'cp-sticker-badge-error'
+                          : 'cp-sticker-badge-running',
+                    ].join(' ')}
+                  >
+                    STATUS: {q.status.replace('_', ' ')}
+                  </span>
+                </div>
               </div>
 
               <h3
@@ -442,45 +457,163 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 )}
 
                 {q.status === 'DONE' ? (
-                  <div
-                    style={{
-                      padding: '12px 14px',
-                      border: '1px solid var(--badge-success-border)',
-                      backgroundColor: 'var(--badge-success-bg)',
-                      color: 'var(--badge-success-text)',
-                      fontFamily: 'var(--font-ui)',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                    }}
-                  >
-                    <span>
-                      ✓ QUESTION {q.questionNumber} COMPLETED (+{q.gainedPoints || q.basePoints} PTS AWARDED TO SCORE).
-                    </span>
-                    {q.completedAt && (
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                        ⏱ SOLVED AT {new Date(q.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                  <>
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        border: '1px solid var(--badge-success-border)',
+                        backgroundColor: 'var(--badge-success-bg)',
+                        color: 'var(--badge-success-text)',
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                      }}
+                    >
+                      <span>
+                        ✓ QUESTION {q.questionNumber} COMPLETED (+{q.gainedPoints || q.basePoints} PTS AWARDED TO SCORE).
                       </span>
+                      {q.completedAt && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                          ⏱ SOLVED AT {new Date(q.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                        </span>
+                      )}
+                    </div>
+
+                    {q.revealedAnswer && (
+                      <div
+                        style={{
+                          padding: '12px 14px',
+                          border: '2px solid var(--badge-success-border)',
+                          backgroundColor: 'rgba(46, 125, 50, 0.08)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-ui)',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                            color: 'var(--badge-success-text)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span>🎯 ĐÁP ÁN CHÍNH THỨC ĐƯỢC TIẾT LỘ (OFFICIAL REVEALED ANSWER)</span>
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: 'var(--color-ink)',
+                            backgroundColor: 'var(--color-canvas)',
+                            padding: '8px 12px',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '2px',
+                            userSelect: 'all',
+                          }}
+                        >
+                          {q.revealedAnswer}
+                        </div>
+                        {q.allAcceptedAnswers && q.allAcceptedAnswers.length > 1 && (
+                          <div
+                            style={{
+                              fontFamily: 'var(--font-ui)',
+                              fontSize: '11px',
+                              color: 'var(--color-muted)',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <strong>Các dạng đáp án hợp lệ khác:</strong>{' '}
+                            {q.allAcceptedAnswers.slice(1).join(' | ')}
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </div>
+                  </>
                 ) : q.status === 'FAILED' || q.remainingAttempts <= 0 ? (
-                  <div
-                    style={{
-                      padding: '12px',
-                      border: '1px solid var(--badge-error-border)',
-                      backgroundColor: 'var(--badge-error-bg)',
-                      color: 'var(--badge-error-text)',
-                      fontFamily: 'var(--font-ui)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    ✕ ALL 6 ATTEMPTS EXHAUSTED ON QUESTION {q.questionNumber}.
-                  </div>
+                  <>
+                    <div
+                      style={{
+                        padding: '12px',
+                        border: '1px solid var(--badge-error-border)',
+                        backgroundColor: 'var(--badge-error-bg)',
+                        color: 'var(--badge-error-text)',
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✕ ALL 6 ATTEMPTS EXHAUSTED ON QUESTION {q.questionNumber}.
+                    </div>
+
+                    {q.revealedAnswer && (
+                      <div
+                        style={{
+                          padding: '12px 14px',
+                          border: '2px solid var(--badge-error-border)',
+                          backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-ui)',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.4px',
+                            color: 'var(--badge-error-text)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span>🎯 ĐÁP ÁN CHÍNH THỨC ĐƯỢC TIẾT LỘ (OFFICIAL REVEALED ANSWER)</span>
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: 'var(--color-ink)',
+                            backgroundColor: 'var(--color-canvas)',
+                            padding: '8px 12px',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '2px',
+                            userSelect: 'all',
+                          }}
+                        >
+                          {q.revealedAnswer}
+                        </div>
+                        {q.allAcceptedAnswers && q.allAcceptedAnswers.length > 1 && (
+                          <div
+                            style={{
+                              fontFamily: 'var(--font-ui)',
+                              fontSize: '11px',
+                              color: 'var(--color-muted)',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <strong>Các dạng đáp án hợp lệ khác:</strong>{' '}
+                            {q.allAcceptedAnswers.slice(1).join(' | ')}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <form
                     onSubmit={handleFormSubmit}

@@ -244,6 +244,21 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 <div className="cp-question-item-top">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="cp-q-number-badge">CÂU {q.questionNumber}</span>
+                    {q.targetDatabase && (
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '9px',
+                          color: 'var(--color-muted)',
+                          padding: '0 3px',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '2px',
+                        }}
+                        title={`Database: ${q.targetDatabase}`}
+                      >
+                        {q.targetDatabase.replace('parallax_', '').toUpperCase()}
+                      </span>
+                    )}
                     {q.status === 'DONE' ? (
                       <span
                         className="cp-sticker-badge cp-sticker-badge-success"
@@ -403,6 +418,38 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                     </span>
                   )}
                 </div>
+
+                {q.revealedAnswer && (
+                  <div
+                    style={{
+                      marginTop: '4px',
+                      padding: '2px 6px',
+                      backgroundColor:
+                        q.status === 'DONE'
+                          ? 'rgba(46, 125, 50, 0.1)'
+                          : 'rgba(211, 47, 47, 0.1)',
+                      border: `1px solid ${
+                        q.status === 'DONE'
+                          ? 'var(--badge-success-border)'
+                          : 'var(--badge-error-border)'
+                      }`,
+                      borderRadius: '2px',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color:
+                        q.status === 'DONE'
+                          ? 'var(--badge-success-text)'
+                          : 'var(--badge-error-text)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`Đáp án chính thức: ${q.revealedAnswer}`}
+                  >
+                    🎯 {q.revealedAnswer}
+                  </div>
+                )}
               </div>
 
               {/* Inline Hint Choice Drawer under Question Title */}

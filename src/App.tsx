@@ -5,6 +5,7 @@ import {
   fetchErdMetadata,
   fetchQuestionDetail,
   fetchQuestionsList,
+  fetchUnlockedDatabases,
   getApiUrl,
   getStoredToken,
   logoutSession,
@@ -68,6 +69,8 @@ export const App: React.FC = () => {
   const [erd, setErd] = useState<ContestErdMetadata | null>(null);
   const [erdLoading, setErdLoading] = useState(false);
   const [highlightedTable, setHighlightedTable] = useState<string | null>(null);
+  const [unlockedDatabases, setUnlockedDatabases] = useState<string[]>(['parallax_c1']);
+  const [activeDatabase, setActiveDatabase] = useState<string>('parallax_c1');
 
   // Toast State
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -175,13 +178,34 @@ export const App: React.FC = () => {
       });
   }, []);
 
+  const loadErdForDb = useCallback(async (dbName: string) => {
+    setErdLoading(true);
+    try {
+      const erdData = await fetchErdMetadata(dbName);
+      setErd(erdData);
+    } catch {
+      // ignore
+    } finally {
+      setErdLoading(false);
+    }
+  }, []);
+
   const loadContestantOverview = useCallback(
     async (autoSelectCurrent: boolean = false, silent: boolean = false) => {
       try {
-        const data = await fetchQuestionsList();
+        const [data, unlockData] = await Promise.all([
+          fetchQuestionsList(),
+          fetchUnlockedDatabases().catch(() => null),
+        ]);
         setQuestions(data.questions);
         setProgress(data.progress);
         setScoreSummary(data.scoreSummary);
+        if (unlockData && unlockData.unlockedDatabases) {
+          setUnlockedDatabases(unlockData.unlockedDatabases);
+          setActiveDatabase((prev) =>
+            unlockData.unlockedDatabases.includes(prev) ? prev : unlockData.activeDatabase || 'parallax_c1'
+          );
+        }
         if (autoSelectCurrent && data.progress?.currentQuestionNumber) {
           const targetQ = Math.min(8, Math.max(1, data.progress.currentQuestionNumber));
           setSelectedQ(targetQ);
@@ -205,6 +229,15 @@ export const App: React.FC = () => {
         const d = await fetchQuestionDetail(qNum);
         setQuestionDetail(d);
         setDetailError(null);
+        if (d?.question?.targetDatabase) {
+          const tDb = d.question.targetDatabase;
+          setUnlockedDatabases((prevUnlocked) => {
+            if (prevUnlocked.includes(tDb)) {
+              setActiveDatabase(tDb);
+            }
+            return prevUnlocked;
+          });
+        }
       } catch (err: any) {
         if (!silent) {
           setDetailError(err?.message || 'Unable to load question dossier');
@@ -218,15 +251,16 @@ export const App: React.FC = () => {
     []
   );
 
+  // Sync ERD schema when activeDatabase changes
+  useEffect(() => {
+    if (!user || user.role !== 'USER') return;
+    loadErdForDb(activeDatabase);
+  }, [user, activeDatabase, loadErdForDb]);
+
   // Load Contestant workspace data & subscribe to real-time SSE + silent fallback sync
   useEffect(() => {
     if (!user || user.role !== 'USER') return;
     loadContestantOverview(true, false);
-    setErdLoading(true);
-    fetchErdMetadata()
-      .then((erdData) => setErd(erdData))
-      .catch(() => {})
-      .finally(() => setErdLoading(false));
 
     const refreshRealtimeState = () => {
       loadContestantOverview(false, true);
@@ -455,12 +489,19 @@ export const App: React.FC = () => {
               <div className="cp-v-splitter-grip" />
             </div>
 
-            {/* 3. Optimized Interactive MuniDB_Hard ERD Canvas Column */}
+            {/* 3. Optimized Interactive Parallax Chapter ERD Canvas Column */}
             <ErdCanvas
               erd={erd}
               loading={erdLoading}
               highlightedTable={highlightedTable}
               onSelectTable={(tbl) => setHighlightedTable(tbl)}
+              activeQuestionNumber={selectedQ}
+              unlockedDatabases={unlockedDatabases}
+              activeDatabase={activeDatabase}
+              onSelectDatabase={(db) => {
+                setActiveDatabase(db);
+                loadErdForDb(db);
+              }}
             />
           </main>
         )}

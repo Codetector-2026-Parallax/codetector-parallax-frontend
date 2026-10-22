@@ -8,6 +8,9 @@ interface ErdCanvasProps {
   onSelectTable: (tableName: string | null) => void;
   caseRelatedTables?: string[];
   activeQuestionNumber?: number;
+  unlockedDatabases?: string[];
+  activeDatabase?: string;
+  onSelectDatabase?: (db: string) => void;
 }
 
 interface NodePosition {
@@ -24,42 +27,47 @@ const HEADER_HEIGHT = 28;
 const ROW_HEIGHT = 22;
 
 /**
- * Deterministic investigative layout for the 22 MuniDB_Hard tables so foreign keys
- * flow cleanly around the central `person` entity.
+ * Deterministic investigative layout for the Parallax chapter tables and legacy MuniDB tables.
  */
 const PREFERRED_TABLE_GRID: Record<
   string,
   { col: number; row: number; domain: Exclude<DomainKey, 'ALL'> }
 > = {
-  // Column 0: Museum & Theft Scene
-  museum: { col: 0, row: 0, domain: 'MUSEUM' },
-  room: { col: 0, row: 1, domain: 'MUSEUM' },
-  artifact: { col: 0, row: 2, domain: 'MUSEUM' },
-  theft_report: { col: 0, row: 3, domain: 'MUSEUM' },
+  // Parallax Chapter 1, 2, 3 tables
+  vehicle: { col: 0, row: 0, domain: 'MUSEUM' },
+  museumvisit: { col: 0, row: 1, domain: 'MUSEUM' },
+  museumevent: { col: 0, row: 2, domain: 'MUSEUM' },
 
-  // Column 1: Museum Access & Carpark Cameras
-  museum_ticket: { col: 1, row: 0, domain: 'MUSEUM' },
-  museum_log: { col: 1, row: 1, domain: 'MUSEUM' },
-  carpark: { col: 1, row: 2, domain: 'PARKING' },
-  camera_device: { col: 1, row: 3, domain: 'PARKING' },
-  carpark_history: { col: 1, row: 4, domain: 'PARKING' },
+  person: { col: 1, row: 0, domain: 'PERSON' },
+  phonecall: { col: 1, row: 1, domain: 'PERSON' },
+  callevidence: { col: 1, row: 2, domain: 'PERSON' },
 
-  // Column 2: Central Person Hub, Witnesses & Rentals
-  person: { col: 2, row: 0, domain: 'PERSON' },
-  witness_statement: { col: 2, row: 1, domain: 'PERSON' },
-  driver_license: { col: 2, row: 2, domain: 'PERSON' },
-  rental_agency: { col: 2, row: 3, domain: 'PERSON' },
+  rental: { col: 2, row: 0, domain: 'PERSON' },
+  rentalagency: { col: 2, row: 1, domain: 'PERSON' },
+
+  bankbranch: { col: 3, row: 0, domain: 'FINANCE' },
+  atm: { col: 3, row: 1, domain: 'FINANCE' },
+  atmtransaction: { col: 3, row: 2, domain: 'FINANCE' },
+
+  // Legacy MuniDB fallback mappings
+  museum: { col: 0, row: 3, domain: 'MUSEUM' },
+  room: { col: 0, row: 4, domain: 'MUSEUM' },
+  artifact: { col: 0, row: 5, domain: 'MUSEUM' },
+  theft_report: { col: 0, row: 6, domain: 'MUSEUM' },
+  museum_ticket: { col: 1, row: 3, domain: 'MUSEUM' },
+  museum_log: { col: 1, row: 4, domain: 'MUSEUM' },
+  carpark: { col: 1, row: 5, domain: 'PARKING' },
+  camera_device: { col: 1, row: 6, domain: 'PARKING' },
+  carpark_history: { col: 1, row: 7, domain: 'PARKING' },
+  witness_statement: { col: 2, row: 2, domain: 'PERSON' },
+  driver_license: { col: 2, row: 3, domain: 'PERSON' },
   car: { col: 2, row: 4, domain: 'PERSON' },
   carrental: { col: 2, row: 5, domain: 'PERSON' },
-
-  // Column 3: Telecom & Banking
-  sim_registration: { col: 3, row: 0, domain: 'FINANCE' },
-  call_log: { col: 3, row: 1, domain: 'FINANCE' },
-  bank_account: { col: 3, row: 2, domain: 'FINANCE' },
-  bank_card: { col: 3, row: 3, domain: 'FINANCE' },
-  atm: { col: 3, row: 4, domain: 'FINANCE' },
-  atm_transaction: { col: 3, row: 5, domain: 'FINANCE' },
-  data_dictionary: { col: 3, row: 6, domain: 'FINANCE' },
+  sim_registration: { col: 3, row: 3, domain: 'FINANCE' },
+  call_log: { col: 3, row: 4, domain: 'FINANCE' },
+  bank_account: { col: 3, row: 5, domain: 'FINANCE' },
+  bank_card: { col: 3, row: 6, domain: 'FINANCE' },
+  data_dictionary: { col: 3, row: 7, domain: 'FINANCE' },
 };
 
 export const ErdCanvas: React.FC<ErdCanvasProps> = ({
@@ -67,6 +75,9 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
   loading,
   highlightedTable,
   onSelectTable,
+  unlockedDatabases,
+  activeDatabase,
+  onSelectDatabase,
 }) => {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState<number>(0.72);
@@ -373,6 +384,94 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
         </div>
       </div>
 
+      {/* Chapter Database Selection Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '6px 12px',
+          backgroundColor: 'var(--color-surface)',
+          borderBottom: '1px solid var(--border-color)',
+          overflowX: 'auto',
+        }}
+      >
+        <span
+          style={{
+            fontFamily: 'var(--font-ui)',
+            fontSize: '11px',
+            fontWeight: 800,
+            color: 'var(--color-primary)',
+            letterSpacing: '0.4px',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          CHAPTER DB:
+        </span>
+        {[
+          { id: 'parallax_c1', shortName: 'C1', title: 'Chương 1: Hiện Trường & Phương Tiện', qRange: 'Câu 1' },
+          { id: 'parallax_c2', shortName: 'C2', title: 'Chương 2: Nhân Thân & Liên Lạc', qRange: 'Câu 2-4' },
+          { id: 'parallax_c3', shortName: 'C3', title: 'Chương 3: Sự Kiện & Dòng Tiền', qRange: 'Câu 5-8' },
+        ].map((ch) => {
+          const isUnlocked = unlockedDatabases ? unlockedDatabases.includes(ch.id) : ch.id === 'parallax_c1';
+          const isCurrent = (activeDatabase || erd?.databaseName || 'parallax_c1') === ch.id;
+          return (
+            <button
+              key={ch.id}
+              type="button"
+              disabled={!isUnlocked}
+              onClick={() => onSelectDatabase && onSelectDatabase(ch.id)}
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                fontWeight: isCurrent ? 800 : 600,
+                padding: '4px 8px',
+                border: isCurrent
+                  ? '2px solid var(--color-primary)'
+                  : '1px solid var(--border-color)',
+                backgroundColor: isCurrent
+                  ? 'var(--color-card)'
+                  : isUnlocked
+                    ? 'transparent'
+                    : 'var(--color-canvas)',
+                color: isCurrent
+                  ? 'var(--color-primary)'
+                  : isUnlocked
+                    ? 'var(--color-ink)'
+                    : 'var(--color-muted)',
+                cursor: isUnlocked ? 'pointer' : 'not-allowed',
+                opacity: isUnlocked ? 1 : 0.55,
+                borderRadius: '3px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.15s ease',
+              }}
+              title={
+                isUnlocked
+                  ? `${ch.title} (${ch.qRange}) — Xem ERD ${ch.id}`
+                  : `🔒 Khóa: Hoàn thành hoặc hết lượt câu hỏi trước để mở ${ch.title} (${ch.qRange})`
+              }
+            >
+              <span>{isUnlocked ? (isCurrent ? '📂' : '📁') : '🔒'}</span>
+              <span>{ch.shortName} ({ch.qRange})</span>
+            </button>
+          );
+        })}
+        {loading && (
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              color: 'var(--color-primary)',
+              marginLeft: 'auto',
+            }}
+          >
+            ⏳ Đang tải schema...
+          </span>
+        )}
+      </div>
 
       {/* Interactive Pan & Zoom ERD Stage */}
       <div

@@ -10,6 +10,7 @@ import type {
   SubmissionRecord,
   TeamProgressInfo,
   TeamScoreSummary,
+  UnlockedDatabasesResponse,
 } from './types';
 
 const TOKEN_STORAGE_KEY = 'codetector_jwt';
@@ -202,8 +203,13 @@ export async function requestQuestionHint(
   });
 }
 
-export async function fetchErdMetadata(): Promise<ContestErdMetadata> {
-  return apiFetch('/api/erd');
+export async function fetchErdMetadata(db?: string): Promise<ContestErdMetadata> {
+  const qs = db ? `?db=${encodeURIComponent(db)}` : '';
+  return apiFetch(`/api/erd${qs}`);
+}
+
+export async function fetchUnlockedDatabases(): Promise<UnlockedDatabasesResponse> {
+  return apiFetch('/api/unlocked-databases');
 }
 
 /* ─── Admin Endpoints ─── */

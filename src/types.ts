@@ -53,6 +53,9 @@ export interface QuestionSummaryItem {
   questionNumber: number;
   title: string;
   basePoints: number;
+  targetDatabase?: string;
+  revealedAnswer?: string | null;
+  allAcceptedAnswers?: string[];
   status: 'NOT_DONE' | 'FAILED' | 'DONE';
   isUnlocked: boolean;
   attemptsUsed: number;
@@ -98,6 +101,9 @@ export interface QuestionDetailData {
       risk_move_milestone?: boolean;
       answer_format?: string;
     };
+    targetDatabase?: string;
+    revealedAnswer?: string | null;
+    allAcceptedAnswers?: string[];
     basePoints: number;
     status: 'NOT_DONE' | 'FAILED' | 'DONE';
     gainedPoints: number;
@@ -154,6 +160,8 @@ export interface ErdRelationship {
 
 export interface ContestErdMetadata {
   databaseName: string;
+  activeDatabase?: string;
+  unlockedDatabases?: string[];
   numberOfTables: number;
   typesOfKeys: string[];
   tables: ErdTableMetadata[];
@@ -163,6 +171,22 @@ export interface ContestErdMetadata {
     columnName: string;
     description: string;
   }>;
+}
+
+export interface ChapterDatabaseInfo {
+  id: string;
+  name: string;
+  title: string;
+  chapter: number;
+  description: string;
+  isUnlocked: boolean;
+  targetQuestions: number[];
+}
+
+export interface UnlockedDatabasesResponse {
+  unlockedDatabases: string[];
+  activeDatabase: string;
+  allDatabases: ChapterDatabaseInfo[];
 }
 
 export interface LeaderboardEntry {
