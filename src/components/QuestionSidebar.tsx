@@ -13,7 +13,6 @@ interface QuestionSidebarProps {
   style?: React.CSSProperties;
   onSelectQuestion: (questionNumber: number) => void;
   onActivateRiskMove: (questionNumber: number) => Promise<void>;
-  onToggleSidebar?: () => void;
 }
 
 export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
@@ -23,7 +22,6 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
   selectedQuestionNumber,
   style,
   onSelectQuestion,
-  onToggleSidebar,
 }) => {
   const completedCount = progress?.completedCount ?? 0;
   const totalQuestions = progress?.totalQuestions ?? 3;
@@ -67,17 +65,6 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
           <span className="cp-sticker-badge" style={{ borderColor: 'var(--color-primary)' }}>
             {completedCount}/{totalQuestions}
           </span>
-          {onToggleSidebar && (
-            <button
-              type="button"
-              className="cp-mini-tag-btn"
-              onClick={onToggleSidebar}
-              title="Ẩn danh sách câu hỏi"
-              style={{ flexShrink: 0 }}
-            >
-              ◀ ẨN DS
-            </button>
-          )}
         </div>
       </div>
 

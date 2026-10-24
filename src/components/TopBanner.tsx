@@ -69,12 +69,14 @@ export const TopBanner: React.FC<TopBannerProps> = ({
         </h1>
         {user.role === 'USER' && scoreSummary && (
           <div
+            className="cp-banner-score-badges"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              flexShrink: 0,
-              flexWrap: 'nowrap',
+              gap: '6px',
+              flexShrink: 1,
+              flexWrap: 'wrap',
+              minWidth: 0,
             }}
           >
             <div className="cp-sticker-badge" title="Live Team Progress">
@@ -84,13 +86,13 @@ export const TopBanner: React.FC<TopBannerProps> = ({
               className="cp-sticker-badge cp-sticker-badge-error"
               title="Total point deductions from retries, hints, and penalties"
             >
-              <span>⚠️ PENALTY: -{scoreSummary.totalPenalty}</span>
+              <span>⚠️ -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
             </div>
             <div
               className="cp-sticker-badge cp-sticker-badge-score"
               title="Current score held by the team"
             >
-              <span>🏆 SCORE: {scoreSummary.score ?? scoreSummary.finalScore} PTS</span>
+              <span>🏆 {Number(scoreSummary.score ?? scoreSummary.finalScore) || 0} PTS</span>
             </div>
           </div>
         )}

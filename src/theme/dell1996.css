@@ -2567,6 +2567,27 @@ textarea:focus-visible,
   .cp-page-frame {
     padding: 4px;
   }
+  .cp-top-banner {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 8px;
+    min-height: auto;
+  }
+  .cp-banner-left,
+  .cp-banner-right {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  .cp-banner-center {
+    order: 3;
+    width: 100%;
+    margin-top: 4px;
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
   .cp-user-workstation {
     flex-direction: column;
     overflow-y: auto;
@@ -2579,6 +2600,12 @@ textarea:focus-visible,
     max-width: none !important;
     border-right: none;
     border-bottom: 1px solid var(--border-strong);
+  }
+  .cp-question-sidebar {
+    height: auto !important;
+    max-height: 260px !important;
+    overflow-y: auto !important;
+    flex-shrink: 0 !important;
   }
   .cp-case-column {
     height: auto !important;
@@ -2593,12 +2620,13 @@ textarea:focus-visible,
     flex: none !important;
   }
   .cp-v-splitter {
-    display: none;
+    display: none !important;
   }
   .cp-erd-column {
     width: 100% !important;
     min-width: 0 !important;
     min-height: 480px;
+    height: 520px;
   }
 }
 

@@ -6,8 +6,6 @@ interface CaseRecordViewProps {
   detail: QuestionDetailData | null;
   loading: boolean;
   error: string | null;
-  isSidebarOpen: boolean;
-  onToggleSidebar: () => void;
   isLiveConnected?: boolean;
   style?: React.CSSProperties;
   onSubmitAnswer: (
@@ -30,8 +28,6 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   detail,
   loading,
   error,
-  isSidebarOpen,
-  onToggleSidebar,
   isLiveConnected = true,
   style,
   onSubmitAnswer,
@@ -602,25 +598,13 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
 
   return (
     <section
-      className={`cp-case-column ${!isSidebarOpen ? 'cp-case-column-expanded' : ''}`}
+      className="cp-case-column"
       style={style}
       aria-label="Question Dossier and Answer Submission"
     >
       {/* Synchronized Ribbon Header */}
       <div className="cp-ribbon-header">
         <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-          {!isSidebarOpen && (
-            <button
-              type="button"
-              className="cp-mini-tag-btn"
-              onClick={onToggleSidebar}
-              aria-expanded={false}
-              title="Hiện danh sách câu hỏi"
-              style={{ flexShrink: 0, marginRight: '4px' }}
-            >
-              ▶ HIỆN DS
-            </button>
-          )}
           <span className="cp-ribbon-swatch" style={{ flexShrink: 0 }} />
           <h2
             className="cp-ribbon-title"

@@ -16,6 +16,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AuthLogin } from './components/AuthLogin';
 import { CaseRecordView } from './components/CaseRecordView';
 import { ErdCanvas } from './components/ErdCanvas';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { QuestionSidebar } from './components/QuestionSidebar';
 import { TopBanner } from './components/TopBanner';
 import { applyTheme, getInitialTheme, initThemeSync, type ThemeMode } from './theme/theme';
@@ -44,9 +45,6 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
-
-  // Questions List Sidebar Hide/Unhide State
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // Resizable Border Widths (Sidebar <-> Dossiers <-> ERD)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -138,8 +136,8 @@ export const App: React.FC = () => {
       if (!container) return;
       const totalW = container.clientWidth;
       if (totalW > 0) {
-        const curSidebar = isSidebarOpen ? sidebarWidth : 0;
-        const splitters = isSidebarOpen ? SPLITTER_WIDTH * 2 : SPLITTER_WIDTH;
+        const curSidebar = sidebarWidth;
+        const splitters = SPLITTER_WIDTH * 2;
 
         // Ensure dossier does not push ERD below MIN_ERD_WIDTH
         const maxDossierAllowed = Math.max(
@@ -151,20 +149,18 @@ export const App: React.FC = () => {
         }
 
         // Ensure sidebar does not push dossier + ERD below their minimums
-        if (isSidebarOpen) {
-          const maxSidebarAllowed = Math.max(
-            MIN_SIDEBAR_WIDTH,
-            Math.min(MAX_SIDEBAR_WIDTH, totalW - MIN_DOSSIER_WIDTH - MIN_ERD_WIDTH - splitters)
-          );
-          if (sidebarWidth > maxSidebarAllowed) {
-            setSidebarWidth(maxSidebarAllowed);
-          }
+        const maxSidebarAllowed = Math.max(
+          MIN_SIDEBAR_WIDTH,
+          Math.min(MAX_SIDEBAR_WIDTH, totalW - MIN_DOSSIER_WIDTH - MIN_ERD_WIDTH - splitters)
+        );
+        if (sidebarWidth > maxSidebarAllowed) {
+          setSidebarWidth(maxSidebarAllowed);
         }
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [isSidebarOpen, sidebarWidth, dossierWidth]);
+  }, [sidebarWidth, dossierWidth]);
 
   // Drag border between Questions List and Dossiers
   const handleSidebarBorderMouseDown = (e: React.MouseEvent) => {
@@ -208,7 +204,7 @@ export const App: React.FC = () => {
     const container = workstationRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    const leftOffset = isSidebarOpen ? sidebarWidth + SPLITTER_WIDTH : 0;
+    const leftOffset = sidebarWidth + SPLITTER_WIDTH;
     setActiveResizer('dossier');
 
     const onMove = (moveEvent: MouseEvent) => {
@@ -497,70 +493,69 @@ export const App: React.FC = () => {
         />
 
         {user.role === 'ADMIN' ? (
-          <AdminDashboard />
+          <ErrorBoundary panelName="Admin Dashboard">
+            <AdminDashboard />
+          </ErrorBoundary>
         ) : (
           <main
             ref={workstationRef}
             className={`cp-user-workstation ${activeResizer ? 'cp-is-resizing-col' : ''}`}
           >
             {/* 1. Questions List Sidebar */}
-            {isSidebarOpen && (
-              <>
-                <QuestionSidebar
-                  style={{
-                    width: `${sidebarWidth}px`,
-                    minWidth: `${MIN_SIDEBAR_WIDTH}px`,
-                    maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
-                    flexShrink: 0,
-                  }}
-                  questions={questions}
-                  progress={progress}
-                  scoreSummary={scoreSummary}
-                  selectedQuestionNumber={selectedQ}
-                  onSelectQuestion={(qNum) => setSelectedQ(qNum)}
-                  onActivateRiskMove={handleActivateRiskMove}
-                  onToggleSidebar={() => setIsSidebarOpen(false)}
-                />
+            <ErrorBoundary panelName="Question Sidebar">
+              <QuestionSidebar
+                style={{
+                  width: `${sidebarWidth}px`,
+                  minWidth: `${MIN_SIDEBAR_WIDTH}px`,
+                  maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
+                  flexShrink: 0,
+                }}
+                questions={questions}
+                progress={progress}
+                scoreSummary={scoreSummary}
+                selectedQuestionNumber={selectedQ}
+                onSelectQuestion={(qNum) => setSelectedQ(qNum)}
+                onActivateRiskMove={handleActivateRiskMove}
+              />
+            </ErrorBoundary>
 
-                {/* Vertical Border Resizer: Questions List <-> Dossier */}
-                <div
-                  className={`cp-v-splitter ${
-                    activeResizer === 'sidebar' ? 'cp-v-splitter-active' : ''
-                  }`}
-                  onMouseDown={handleSidebarBorderMouseDown}
-                  onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
-                  role="separator"
-                  aria-orientation="vertical"
-                  title="Drag border to resize Questions List & Dossier (Double-click to reset)"
-                >
-                  <div className="cp-v-splitter-grip" />
-                </div>
-              </>
-            )}
+            {/* Vertical Border Resizer: Questions List <-> Dossier */}
+            <div
+              className={`cp-v-splitter ${
+                activeResizer === 'sidebar' ? 'cp-v-splitter-active' : ''
+              }`}
+              onMouseDown={handleSidebarBorderMouseDown}
+              onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+              role="separator"
+              aria-orientation="vertical"
+              title="Drag border to resize Questions List & Dossier (Double-click to reset)"
+            >
+              <div className="cp-v-splitter-grip" />
+            </div>
 
             {/* 2. Combined Question Case Dossier & Submit Column */}
-            <CaseRecordView
-              style={{
-                width: `${dossierWidth}px`,
-                minWidth: `${MIN_DOSSIER_WIDTH}px`,
-                maxWidth: `${MAX_DOSSIER_WIDTH}px`,
-                height: '100%',
-                maxHeight: '100%',
-                minHeight: 0,
-                flexShrink: 0,
-              }}
-              detail={questionDetail}
-              loading={detailLoading}
-              error={detailError}
-              isSidebarOpen={isSidebarOpen}
-              onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
-              isLiveConnected={isLiveConnected}
-              onSubmitAnswer={handleSubmitAnswer}
-              onRequestHint={handleRequestHint}
-              requestingHintKey={requestingHintKey}
-              onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
-              onNavigateQuestion={(qNum) => setSelectedQ(qNum)}
-            />
+            <ErrorBoundary panelName="Case Record Dossier">
+              <CaseRecordView
+                style={{
+                  width: `${dossierWidth}px`,
+                  minWidth: `${MIN_DOSSIER_WIDTH}px`,
+                  maxWidth: `${MAX_DOSSIER_WIDTH}px`,
+                  height: '100%',
+                  maxHeight: '100%',
+                  minHeight: 0,
+                  flexShrink: 0,
+                }}
+                detail={questionDetail}
+                loading={detailLoading}
+                error={detailError}
+                isLiveConnected={isLiveConnected}
+                onSubmitAnswer={handleSubmitAnswer}
+                onRequestHint={handleRequestHint}
+                requestingHintKey={requestingHintKey}
+                onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
+                onNavigateQuestion={(qNum) => setSelectedQ(qNum)}
+              />
+            </ErrorBoundary>
 
             {/* Vertical Border Resizer: Dossiers <-> ERD */}
             <div
@@ -577,23 +572,25 @@ export const App: React.FC = () => {
             </div>
 
             {/* 3. Optimized Interactive Parallax Chapter ERD Canvas Column */}
-            <ErdCanvas
-              style={{
-                minWidth: `${MIN_ERD_WIDTH}px`,
-                flex: 1,
-              }}
-              erd={erd}
-              loading={erdLoading}
-              highlightedTable={highlightedTable}
-              onSelectTable={(tbl) => setHighlightedTable(tbl)}
-              activeQuestionNumber={selectedQ}
-              unlockedDatabases={unlockedDatabases}
-              activeDatabase={activeDatabase}
-              onSelectDatabase={(db) => {
-                setActiveDatabase(db);
-                loadErdForDb(db);
-              }}
-            />
+            <ErrorBoundary panelName="ERD Canvas">
+              <ErdCanvas
+                style={{
+                  minWidth: `${MIN_ERD_WIDTH}px`,
+                  flex: 1,
+                }}
+                erd={erd}
+                loading={erdLoading}
+                highlightedTable={highlightedTable}
+                onSelectTable={(tbl) => setHighlightedTable(tbl)}
+                activeQuestionNumber={selectedQ}
+                unlockedDatabases={unlockedDatabases}
+                activeDatabase={activeDatabase}
+                onSelectDatabase={(db) => {
+                  setActiveDatabase(db);
+                  loadErdForDb(db);
+                }}
+              />
+            </ErrorBoundary>
           </main>
         )}
 
