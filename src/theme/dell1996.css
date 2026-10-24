@@ -43,6 +43,7 @@
   --glass: #78C6CE;              /* Soft teal / museum glass (9.66:1 AAA) */
   --success: #8EC07C;            /* Sage green verified indicator (8.95:1 AAA) */
   --signal-amber: #BE6816;       /* Muted Amber investigation status */
+  --tint-sage: #8EC07C;          /* Luminous sage green catalog node */
 
   /* Neutral Dark Tints */
   --tint-parchment: #221E19;     /* Dark archival dossier paper */
@@ -841,10 +842,15 @@ textarea:focus-visible,
   background-color: var(--color-primary);
   display: inline-block;
   flex-shrink: 0;
+  border: 1px solid var(--border-strong, #7A624A);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.3), inset -1px -1px 0 rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
 }
 
 .cp-ribbon-swatch-utility {
-  background-color: var(--tint-sage);
+  background-color: var(--tint-sage, #8EC07C) !important;
+  border: 1px solid var(--border-strong, #7A624A);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.3), inset -1px -1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .cp-ribbon-title {
