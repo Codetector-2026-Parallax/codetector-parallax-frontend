@@ -18,7 +18,7 @@ import { CaseRecordView } from './components/CaseRecordView';
 import { ErdCanvas } from './components/ErdCanvas';
 import { QuestionSidebar } from './components/QuestionSidebar';
 import { TopBanner } from './components/TopBanner';
-import { applyTheme, getInitialTheme, type ThemeMode } from './theme/theme';
+import { applyTheme, getInitialTheme, initThemeSync, type ThemeMode } from './theme/theme';
 import type {
   AuthUser,
   ContestErdMetadata,
@@ -28,8 +28,17 @@ import type {
   TeamScoreSummary,
 } from './types';
 
-const DEFAULT_SIDEBAR_WIDTH = 285;
-const DEFAULT_DOSSIER_WIDTH = 460;
+// Bounded pane dimension limits to guarantee components never override, eclipse, or squash each other
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 420;
+const DEFAULT_SIDEBAR_WIDTH = 280;
+
+const MIN_DOSSIER_WIDTH = 320;
+const MAX_DOSSIER_WIDTH = 1400;
+const DEFAULT_DOSSIER_WIDTH = 500;
+
+const MIN_ERD_WIDTH = 300;
+const SPLITTER_WIDTH = 6;
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
@@ -42,11 +51,11 @@ export const App: React.FC = () => {
   // Resizable Border Widths (Sidebar <-> Dossiers <-> ERD)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cp_sidebar_width'));
-    return saved >= 220 && saved <= 450 ? saved : DEFAULT_SIDEBAR_WIDTH;
+    return saved >= MIN_SIDEBAR_WIDTH && saved <= MAX_SIDEBAR_WIDTH ? saved : DEFAULT_SIDEBAR_WIDTH;
   });
   const [dossierWidth, setDossierWidth] = useState<number>(() => {
     const saved = Number(localStorage.getItem('cp_dossier_width'));
-    return saved >= 300 && saved <= 900 ? saved : DEFAULT_DOSSIER_WIDTH;
+    return saved >= MIN_DOSSIER_WIDTH && saved <= MAX_DOSSIER_WIDTH ? saved : DEFAULT_DOSSIER_WIDTH;
   });
   const [activeResizer, setActiveResizer] = useState<'sidebar' | 'dossier' | null>(null);
   const workstationRef = useRef<HTMLElement | null>(null);
@@ -88,8 +97,8 @@ export const App: React.FC = () => {
       applyTheme(next);
       showToast(
         next === 'dark'
-          ? '🌙 DISPLAY MODE: DARK EDITION'
-          : '☀️ DISPLAY MODE: LIGHT EDITION'
+          ? '🌙 THEME: MIDNIGHT INVESTIGATION'
+          : '☀️ THEME: VINTAGE INVESTIGATION ARCHIVE'
       );
       return next;
     });
@@ -98,6 +107,13 @@ export const App: React.FC = () => {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  // Synchronize theme changes across tabs/windows (e.g. SQL Editor <-> Case Record Portal)
+  useEffect(() => {
+    return initThemeSync((syncedTheme) => {
+      setTheme(syncedTheme);
+    });
+  }, []);
 
   useEffect(() => {
     try {
@@ -115,18 +131,65 @@ export const App: React.FC = () => {
     }
   }, [dossierWidth]);
 
+  // Dynamically clamp sidebar & dossier widths on window resize so neither overrides the other or squeezes out ERD
+  useEffect(() => {
+    const handleResize = () => {
+      const container = workstationRef.current;
+      if (!container) return;
+      const totalW = container.clientWidth;
+      if (totalW > 0) {
+        const curSidebar = isSidebarOpen ? sidebarWidth : 0;
+        const splitters = isSidebarOpen ? SPLITTER_WIDTH * 2 : SPLITTER_WIDTH;
+
+        // Ensure dossier does not push ERD below MIN_ERD_WIDTH
+        const maxDossierAllowed = Math.max(
+          MIN_DOSSIER_WIDTH,
+          Math.min(MAX_DOSSIER_WIDTH, totalW - curSidebar - splitters - MIN_ERD_WIDTH)
+        );
+        if (dossierWidth > maxDossierAllowed) {
+          setDossierWidth(maxDossierAllowed);
+        }
+
+        // Ensure sidebar does not push dossier + ERD below their minimums
+        if (isSidebarOpen) {
+          const maxSidebarAllowed = Math.max(
+            MIN_SIDEBAR_WIDTH,
+            Math.min(MAX_SIDEBAR_WIDTH, totalW - MIN_DOSSIER_WIDTH - MIN_ERD_WIDTH - splitters)
+          );
+          if (sidebarWidth > maxSidebarAllowed) {
+            setSidebarWidth(maxSidebarAllowed);
+          }
+        }
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isSidebarOpen, sidebarWidth, dossierWidth]);
+
   // Drag border between Questions List and Dossiers
   const handleSidebarBorderMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     const container = workstationRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
+    const splitters = SPLITTER_WIDTH * 2;
     setActiveResizer('sidebar');
 
     const onMove = (moveEvent: MouseEvent) => {
-      const nextWidth = Math.round(moveEvent.clientX - rect.left);
-      const clamped = Math.min(440, Math.max(220, nextWidth));
-      setSidebarWidth(clamped);
+      const rawWidth = Math.round(moveEvent.clientX - rect.left);
+      const maxAllowedByContainer = rect.width - MIN_DOSSIER_WIDTH - MIN_ERD_WIDTH - splitters;
+      const maxAllowed = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, maxAllowedByContainer));
+      const clampedSidebar = Math.min(maxAllowed, Math.max(MIN_SIDEBAR_WIDTH, rawWidth));
+      setSidebarWidth(clampedSidebar);
+
+      // Dynamically adjust dossier down if needed to safeguard ERD minimum
+      const maxDossierWithNewSidebar = rect.width - clampedSidebar - splitters - MIN_ERD_WIDTH;
+      setDossierWidth((prev) => {
+        if (prev > maxDossierWithNewSidebar) {
+          return Math.max(MIN_DOSSIER_WIDTH, maxDossierWithNewSidebar);
+        }
+        return prev;
+      });
     };
 
     const onUp = () => {
@@ -145,14 +208,15 @@ export const App: React.FC = () => {
     const container = workstationRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    const leftOffset = isSidebarOpen ? sidebarWidth + 6 : 0;
+    const leftOffset = isSidebarOpen ? sidebarWidth + SPLITTER_WIDTH : 0;
     setActiveResizer('dossier');
 
     const onMove = (moveEvent: MouseEvent) => {
       const rawWidth = Math.round(moveEvent.clientX - rect.left - leftOffset);
-      const maxAllowed = Math.max(360, rect.width - leftOffset - 320);
-      const clamped = Math.min(maxAllowed, Math.max(300, rawWidth));
-      setDossierWidth(clamped);
+      const maxAllowedByContainer = rect.width - leftOffset - SPLITTER_WIDTH - MIN_ERD_WIDTH;
+      const maxAllowed = Math.max(MIN_DOSSIER_WIDTH, Math.min(MAX_DOSSIER_WIDTH, maxAllowedByContainer));
+      const clampedDossier = Math.min(maxAllowed, Math.max(MIN_DOSSIER_WIDTH, rawWidth));
+      setDossierWidth(clampedDossier);
     };
 
     const onUp = () => {
@@ -207,7 +271,7 @@ export const App: React.FC = () => {
           );
         }
         if (autoSelectCurrent && data.progress?.currentQuestionNumber) {
-          const targetQ = Math.min(8, Math.max(1, data.progress.currentQuestionNumber));
+          const targetQ = Math.min(3, Math.max(1, data.progress.currentQuestionNumber));
           setSelectedQ(targetQ);
         }
       } catch (err: any) {
@@ -336,14 +400,15 @@ export const App: React.FC = () => {
   const handleSubmitAnswer = async (
     questionNumber: number,
     answerContent: string,
-    useRiskMove: boolean
+    investigationIndex?: number,
+    useRiskMove: boolean = false
   ) => {
     try {
-      const res = await submitQuestionAnswer(questionNumber, answerContent, useRiskMove);
+      const res = await submitQuestionAnswer(questionNumber, answerContent, investigationIndex, useRiskMove);
       showToast(
         res.isCorrect
-          ? `✓ Correct! Question ${questionNumber} ACCEPTED!`
-          : `✕ Incorrect (${res.remainingAttempts} attempts remaining).`
+          ? `✓ ${res.feedbackMessage}`
+          : `✕ ${res.feedbackMessage}`
       );
       await loadContestantOverview(false, true);
       await loadSelectedQuestionDetail(questionNumber, true);
@@ -434,15 +499,19 @@ export const App: React.FC = () => {
             {isSidebarOpen && (
               <>
                 <QuestionSidebar
-                  style={{ width: `${sidebarWidth}px`, minWidth: '220px', maxWidth: 'none' }}
+                  style={{
+                    width: `${sidebarWidth}px`,
+                    minWidth: `${MIN_SIDEBAR_WIDTH}px`,
+                    maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
+                    flexShrink: 0,
+                  }}
                   questions={questions}
                   progress={progress}
                   scoreSummary={scoreSummary}
                   selectedQuestionNumber={selectedQ}
                   onSelectQuestion={(qNum) => setSelectedQ(qNum)}
-                  onRequestHint={handleRequestHint}
-                  requestingHintKey={requestingHintKey}
                   onActivateRiskMove={handleActivateRiskMove}
+                  onToggleSidebar={() => setIsSidebarOpen(false)}
                 />
 
                 {/* Vertical Border Resizer: Questions List <-> Dossier */}
@@ -463,7 +532,15 @@ export const App: React.FC = () => {
 
             {/* 2. Combined Question Case Dossier & Submit Column */}
             <CaseRecordView
-              style={{ width: `${dossierWidth}px`, minWidth: '300px', maxWidth: 'none' }}
+              style={{
+                width: `${dossierWidth}px`,
+                minWidth: `${MIN_DOSSIER_WIDTH}px`,
+                maxWidth: `${MAX_DOSSIER_WIDTH}px`,
+                height: '100%',
+                maxHeight: '100%',
+                minHeight: 0,
+                flexShrink: 0,
+              }}
               detail={questionDetail}
               loading={detailLoading}
               error={detailError}
@@ -471,6 +548,8 @@ export const App: React.FC = () => {
               onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
               isLiveConnected={isLiveConnected}
               onSubmitAnswer={handleSubmitAnswer}
+              onRequestHint={handleRequestHint}
+              requestingHintKey={requestingHintKey}
               onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
               onNavigateQuestion={(qNum) => setSelectedQ(qNum)}
             />
@@ -491,6 +570,10 @@ export const App: React.FC = () => {
 
             {/* 3. Optimized Interactive Parallax Chapter ERD Canvas Column */}
             <ErdCanvas
+              style={{
+                minWidth: `${MIN_ERD_WIDTH}px`,
+                flex: 1,
+              }}
               erd={erd}
               loading={erdLoading}
               highlightedTable={highlightedTable}

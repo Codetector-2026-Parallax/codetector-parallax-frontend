@@ -152,10 +152,14 @@ export async function fetchQuestionDetail(questionNumber: number): Promise<Quest
 export async function submitQuestionAnswer(
   questionNumber: number,
   answerContent: string,
+  investigationIndex?: number,
   useRiskMove: boolean = false
 ): Promise<{
   submission: SubmissionRecord;
   isCorrect: boolean;
+  investigationIndex?: number;
+  investigationStatus?: 'NOT_DONE' | 'FAILED' | 'DONE';
+  currentInvestigationIndex?: number;
   questionStatus: 'NOT_DONE' | 'FAILED' | 'DONE';
   nextQuestionUnlocked: number | null;
   attemptsUsed: number;
@@ -165,7 +169,7 @@ export async function submitQuestionAnswer(
 }> {
   return apiFetch(`/api/questions/${questionNumber}/submit`, {
     method: 'POST',
-    body: JSON.stringify({ answerContent, useRiskMove }),
+    body: JSON.stringify({ answerContent, investigationIndex, useRiskMove }),
   });
 }
 

@@ -49,15 +49,41 @@ export interface HintRequestItem {
   decided_at: string | null;
 }
 
+export interface QuestionInvestigationItem {
+  index: number;
+  key: string; // 'A' | 'B'
+  title: string;
+  isUnlocked: boolean;
+  status: 'NOT_DONE' | 'FAILED' | 'DONE';
+  attemptsUsed: number;
+  maxAttempts: number;
+  remainingAttempts: number;
+  basePoints: number;
+  earnedPoints: number;
+  taskTitle: string;
+  taskDescription?: string | null;
+  submissionPrompt?: string | null;
+  submissionFormat?: string | null;
+  clue?: string | null;
+  image?: string | null;
+  revealedAnswer?: string | null;
+  allAcceptedAnswers?: string[];
+  completedAt?: string | null;
+}
+
 export interface QuestionSummaryItem {
   questionNumber: number;
   title: string;
+  story?: string;
+  content?: string;
   basePoints: number;
   targetDatabase?: string;
   revealedAnswer?: string | null;
   allAcceptedAnswers?: string[];
   status: 'NOT_DONE' | 'FAILED' | 'DONE';
   isUnlocked: boolean;
+  currentInvestigationIndex?: number;
+  investigations?: QuestionInvestigationItem[];
   attemptsUsed: number;
   maxAttempts: number;
   hasRiskMove: boolean;
@@ -82,6 +108,7 @@ export interface TeamProgressInfo {
 export interface SubmissionRecord {
   id: number;
   attempt_number: number;
+  investigation_index?: number;
   answer_content: string;
   risk_move_used: boolean;
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
@@ -94,6 +121,7 @@ export interface QuestionDetailData {
   question: {
     questionNumber: number;
     title: string;
+    story?: string;
     content: string;
     caseDossier: {
       clues?: string[];
@@ -101,6 +129,8 @@ export interface QuestionDetailData {
       risk_move_milestone?: boolean;
       answer_format?: string;
     };
+    investigations?: QuestionInvestigationItem[];
+    currentInvestigationIndex?: number;
     targetDatabase?: string;
     revealedAnswer?: string | null;
     allAcceptedAnswers?: string[];
@@ -164,12 +194,16 @@ export interface ContestErdMetadata {
   unlockedDatabases?: string[];
   numberOfTables: number;
   typesOfKeys: string[];
+  tableCount?: number;
+  keyCount?: number;
   tables: ErdTableMetadata[];
   relationships: ErdRelationship[];
   dataDictionary: Array<{
     tableName: string;
     columnName: string;
-    description: string;
+    dataType?: string;
+    description?: string;
+    vietnameseDescription?: string;
   }>;
 }
 
@@ -182,6 +216,8 @@ export interface ChapterDatabaseInfo {
   isUnlocked: boolean;
   targetQuestions: number[];
 }
+
+export interface ChapterDatabaseOption extends ChapterDatabaseInfo {}
 
 export interface UnlockedDatabasesResponse {
   unlockedDatabases: string[];

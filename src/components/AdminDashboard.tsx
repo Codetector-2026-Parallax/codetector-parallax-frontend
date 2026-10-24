@@ -485,7 +485,7 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                         )}
                       </td>
-                      {entry.questionStatuses.map((qs) => {
+                      {entry.questionStatuses.map((qs: any) => {
                         const solvedTimeStr =
                           qs.status === 'DONE' && qs.completedAt
                             ? new Date(qs.completedAt).toLocaleTimeString([], {
@@ -867,7 +867,7 @@ export const AdminDashboard: React.FC = () => {
                             />
                           ) : (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                              {(q.accepted_answers || []).map((ans, idx) => (
+                              {(q.accepted_answers || []).map((ans: string, idx: number) => (
                                 <span
                                   key={idx}
                                   className="cp-q-hint-trigger"

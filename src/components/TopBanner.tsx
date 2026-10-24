@@ -43,7 +43,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
   return (
     <header className="cp-top-banner">
       {/* Left: JSClub Logo */}
-      <div className="cp-banner-left">
+      <div className="cp-banner-left" style={{ minWidth: 0, flexShrink: 0 }}>
         <div className="cp-logo-tile" title="JSClub — Japanese Software Engineering Club">
           <img
             src="/assets/codetector-logo.png"
@@ -58,38 +58,36 @@ export const TopBanner: React.FC<TopBannerProps> = ({
       </div>
 
       {/* Center: Codetector Parallax - Case Record */}
-      <div className="cp-banner-center">
-        <h1 className="cp-event-title">
+      <div className="cp-banner-center" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+        <h1
+          className="cp-event-title"
+          style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+        >
           <span className="cp-event-title-gold">CODETECTOR PARALLAX</span>
           {' — '}
           {user.role === 'ADMIN' ? 'ADMIN CONTROL DESK' : 'CASE RECORD'}
         </h1>
         {user.role === 'USER' && scoreSummary && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexShrink: 0,
+              flexWrap: 'nowrap',
+            }}
+          >
             <div className="cp-sticker-badge" title="Live Team Progress">
-              <span>PROGRESS: {progress?.progressText ?? '0/8'}</span>
+              <span>PROGRESS: {progress?.progressText ?? '0/3'}</span>
             </div>
             <div
-              className="cp-sticker-badge"
-              style={{
-                borderColor: 'var(--badge-error-border)',
-                backgroundColor: 'rgba(217, 83, 79, 0.12)',
-                color: 'var(--badge-error-text)',
-                fontWeight: 700,
-              }}
+              className="cp-sticker-badge cp-sticker-badge-error"
               title="Total point deductions from retries, hints, and penalties"
             >
               <span>⚠️ PENALTY: -{scoreSummary.totalPenalty}</span>
             </div>
             <div
-              className="cp-sticker-badge"
-              style={{
-                borderColor: 'var(--color-primary)',
-                backgroundColor: 'var(--color-primary-subtle)',
-                color: 'var(--color-primary)',
-                fontWeight: 700,
-                padding: '3px 10px',
-              }}
+              className="cp-sticker-badge cp-sticker-badge-score"
               title="Current score held by the team"
             >
               <span>🏆 SCORE: {scoreSummary.score ?? scoreSummary.finalScore} PTS</span>
@@ -99,7 +97,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
       </div>
 
       {/* Right: Theme Toggle + User Profile Icon -> AUTHENTICATED TEAM, LOGOUT */}
-      <div className="cp-banner-right" ref={menuRef}>
+      <div className="cp-banner-right" ref={menuRef} style={{ minWidth: 0, flexShrink: 0 }}>
         <button
           type="button"
           className="cp-theme-toggle"
@@ -145,14 +143,14 @@ export const TopBanner: React.FC<TopBannerProps> = ({
                 <strong>{user.role === 'ADMIN' ? 'ADMIN' : 'CONTESTANT'}</strong>
               </div>
               <div className="cp-profile-meta-row">
-                <span>Display Mode:</span>
-                <strong>{theme === 'dark' ? 'DARK EDITION' : 'LIGHT EDITION'}</strong>
+                <span>Theme:</span>
+                <strong>{theme === 'dark' ? 'MIDNIGHT INVESTIGATION' : 'VINTAGE INVESTIGATION ARCHIVE'}</strong>
               </div>
               {user.role === 'USER' && scoreSummary && (
                 <>
                   <div className="cp-profile-meta-row">
                     <span>Case Progress:</span>
-                    <strong>{progress?.progressText ?? '0/8'}</strong>
+                    <strong>{progress?.progressText ?? '0/3'}</strong>
                   </div>
                   <div className="cp-profile-meta-row">
                     <span>Total Penalty:</span>

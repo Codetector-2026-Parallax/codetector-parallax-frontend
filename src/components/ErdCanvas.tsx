@@ -11,6 +11,7 @@ interface ErdCanvasProps {
   unlockedDatabases?: string[];
   activeDatabase?: string;
   onSelectDatabase?: (db: string) => void;
+  style?: React.CSSProperties;
 }
 
 interface NodePosition {
@@ -78,6 +79,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
   unlockedDatabases,
   activeDatabase,
   onSelectDatabase,
+  style,
 }) => {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState<number>(0.72);
@@ -283,15 +285,25 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
   return (
     <section
       className={`cp-erd-column ${isFullscreen ? 'cp-erd-column-fullscreen' : ''}`}
+      style={style}
       aria-label="MuniDB_Hard Interactive ERD Viewer"
     >
       {/* Synchronized Primary ERD Ribbon Header (Matches Metabase Ribbon Header) */}
       <div className="cp-ribbon-header">
         {/* Left: ERD Title, Number of Tables & Key Legend */}
-        <div className="cp-ribbon-header-left">
-          <span className="cp-ribbon-swatch" />
-          <h2 className="cp-ribbon-title">ERD SCHEMA</h2>
-          <span className="cp-sticker-badge" title="Live introspected MuniDB_Hard tables">
+        <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+          <span className="cp-ribbon-swatch" style={{ flexShrink: 0 }} />
+          <h2
+            className="cp-ribbon-title"
+            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+          >
+            ERD SCHEMA
+          </h2>
+          <span
+            className="cp-sticker-badge"
+            style={{ flexShrink: 0 }}
+            title="Live introspected MuniDB_Hard tables"
+          >
             {erd?.numberOfTables ?? 22} TABLES
           </span>
 
@@ -374,7 +386,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           </button>
           <button
             type="button"
-            className="cp-btn-primary"
+            className="cp-mini-tag-btn"
             style={{ padding: '4px 8px', fontSize: '10px' }}
             onClick={() => setIsFullscreen((prev) => !prev)}
             title="Toggle Fullscreen ERD mode"
@@ -384,88 +396,49 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
         </div>
       </div>
 
-      {/* Chapter Database Selection Tabs */}
+      {/* Active Database Status Bar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
+          justifyContent: 'space-between',
           padding: '6px 12px',
           backgroundColor: 'var(--color-surface)',
           borderBottom: '1px solid var(--border-color)',
-          overflowX: 'auto',
         }}
       >
-        <span
-          style={{
-            fontFamily: 'var(--font-ui)',
-            fontSize: '11px',
-            fontWeight: 800,
-            color: 'var(--color-primary)',
-            letterSpacing: '0.4px',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          CHAPTER DB:
-        </span>
-        {[
-          { id: 'parallax_c1', shortName: 'C1', title: 'Chương 1: Hiện Trường & Phương Tiện', qRange: 'Câu 1' },
-          { id: 'parallax_c2', shortName: 'C2', title: 'Chương 2: Nhân Thân & Liên Lạc', qRange: 'Câu 2-4' },
-          { id: 'parallax_c3', shortName: 'C3', title: 'Chương 3: Sự Kiện & Dòng Tiền', qRange: 'Câu 5-8' },
-        ].map((ch) => {
-          const isUnlocked = unlockedDatabases ? unlockedDatabases.includes(ch.id) : ch.id === 'parallax_c1';
-          const isCurrent = (activeDatabase || erd?.databaseName || 'parallax_c1') === ch.id;
-          return (
-            <button
-              key={ch.id}
-              type="button"
-              disabled={!isUnlocked}
-              onClick={() => onSelectDatabase && onSelectDatabase(ch.id)}
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '11px',
-                fontWeight: isCurrent ? 800 : 600,
-                padding: '4px 8px',
-                border: isCurrent
-                  ? '2px solid var(--color-primary)'
-                  : '1px solid var(--border-color)',
-                backgroundColor: isCurrent
-                  ? 'var(--color-card)'
-                  : isUnlocked
-                    ? 'transparent'
-                    : 'var(--color-canvas)',
-                color: isCurrent
-                  ? 'var(--color-primary)'
-                  : isUnlocked
-                    ? 'var(--color-ink)'
-                    : 'var(--color-muted)',
-                cursor: isUnlocked ? 'pointer' : 'not-allowed',
-                opacity: isUnlocked ? 1 : 0.55,
-                borderRadius: '3px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-              title={
-                isUnlocked
-                  ? `${ch.title} (${ch.qRange}) — Xem ERD ${ch.id}`
-                  : `🔒 Khóa: Hoàn thành hoặc hết lượt câu hỏi trước để mở ${ch.title} (${ch.qRange})`
-              }
-            >
-              <span>{isUnlocked ? (isCurrent ? '📂' : '📁') : '🔒'}</span>
-              <span>{ch.shortName} ({ch.qRange})</span>
-            </button>
-          );
-        })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: '11px',
+              fontWeight: 800,
+              color: 'var(--color-muted)',
+              letterSpacing: '0.4px',
+            }}
+          >
+            ACTIVE DATABASE:
+          </span>
+          <span
+            className="cp-sticker-badge"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              fontWeight: 700,
+              backgroundColor: 'var(--color-card)',
+              color: 'var(--color-primary)',
+              borderColor: 'var(--color-primary)',
+            }}
+          >
+            🗄️ {erd?.databaseName || activeDatabase || 'parallax_c1'}
+          </span>
+        </div>
         {loading && (
           <span
             style={{
               fontFamily: 'var(--font-mono)',
               fontSize: '11px',
               color: 'var(--color-primary)',
-              marginLeft: 'auto',
             }}
           >
             ⏳ Đang tải schema...

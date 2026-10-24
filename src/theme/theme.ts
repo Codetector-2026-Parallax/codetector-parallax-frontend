@@ -1,6 +1,6 @@
 export type ThemeMode = 'dark' | 'light';
 
-const THEME_STORAGE_KEY = 'cp_theme';
+export const THEME_STORAGE_KEY = 'cp_theme';
 
 export function getInitialTheme(): ThemeMode {
   try {
@@ -23,4 +23,18 @@ export function applyTheme(theme: ThemeMode): void {
   } catch {
     // ignore quota errors
   }
+}
+
+/**
+ * Cross-tab / cross-window theme synchronization listener
+ */
+export function initThemeSync(onThemeChange?: (theme: ThemeMode) => void): () => void {
+  const handler = (e: StorageEvent) => {
+    if (e.key === THEME_STORAGE_KEY && (e.newValue === 'light' || e.newValue === 'dark')) {
+      applyTheme(e.newValue);
+      onThemeChange?.(e.newValue);
+    }
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
 }

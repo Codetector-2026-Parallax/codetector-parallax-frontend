@@ -1,102 +1,153 @@
 /* ============================================================================
- * DESIGN SYSTEM: Dell 1996 Minimalist Edition (Dark & Light Themes)
+ * DESIGN SYSTEM: Dell 1996 Minimalist Edition (CODETECTOR: PARALLAX)
  * Application:   Codetector Parallax — Unified Case Record & SQL Editor Suite
- * Color Rule:    85% Base Neutrals · 10% Semantic Utility · 5% Antique Gold (#c9a227)
+ * Light Theme:   Vintage Investigation Archive (DESIGN-dell-1996.md)
+ * Dark Theme:    Midnight Investigation (DESIGN-dell-1996-dark.md)
  * ============================================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif:ital,wght@0,400;0,600;0,700;1,400&display=swap");
 
 :root,
 :root[data-theme="dark"],
 [data-theme="dark"] {
-  /* ─── 5% MAIN FEATURE ACCENT: Antique Gold (#c9a227) ─── */
-  --color-primary: #c9a227;
-  --color-primary-hover: #dbb434;
-  --color-primary-subtle: rgba(201, 162, 39, 0.14);
-  --color-on-primary: #0a0906;
+  color-scheme: dark;
 
-  /* ─── 85% DOMINANT DARK NEUTRALS (Obsidian & Charcoal) ─── */
-  --color-frame-ink: #0a0a09;
-  --color-canvas: #121210;
-  --color-surface: #1a1917;
-  --color-surface-elevated: #22211e;
-  --surface-striped: #161513;
-  --surface-sage-light: #161614;
-  --surface-steel-light: #181715;
-  --surface-sky-light: #1c1b18;
-  --surface-salmon-light: #2a1716;
-  --surface-gold-light: #211f1a;
+  /* ─── DARK THEME: MIDNIGHT INVESTIGATION (MINIMALIST EDITION) ─── */
+  /* Main Accent Color #F7C873 reserved EXCLUSIVELY for Main Features & Active Utilities */
+  --canvas: #121110;             /* Clean, restful deep charcoal canvas */
+  --surface: #1A1816;            /* Subtle dark archival desk surface */
+  --surface-sunken: #0F0E0D;     /* Sunken wells & query terminals */
+  --surface-raised: #22201D;     /* Elevated case dossier cards */
+  --frame: #0C0A09;              /* Deep black-brown frame bar */
+  --on-frame: #EAE4D9;           /* Warm antique cream on frame */
 
-  /* Typography & Ink Hierarchy (WCAG AAA/AA Verified) */
-  --color-ink: #f0ede6;
-  --color-muted: #969186;
-  --color-banner-text: #f0ede6;
+  --ink: #EAE4D9;                /* Warm antique off-white typography (15.8:1 AAA) */
+  --ink-muted: #ABA092;          /* Muted off-white secondary typography (8.2:1 AAA) */
+  --ink-subtle: #7A7064;         /* Subtle caption & comment typography (4.5:1 AA) */
 
-  /* Clean Neutral Structural Borders */
-  --color-hairline: #2e2c28;
-  --border-color: #2e2c28;
-  --border-strong: #3d3a34;
+  --border: #7A624A;             /* Quiet metallic aged copper border (3.3:1 AAA UI) */
+  --border-soft: #2E2721;        /* Subtle dark soft divider */
 
-  /* Primary Feature CTA Button (Antique Gold) */
-  --btn-primary-bg: #c9a227;
-  --btn-primary-hover-bg: #dbb434;
-  --btn-primary-text: #0a0906;
-  --btn-primary-border: #dfb938;
+  /* Primary Action & Brand Accents — Reserved for Primary CTAs & Active Utilities */
+  --primary: #F7C873;            /* Luminous Vintage Gold for primary CTA buttons & active highlights */
+  --primary-pressed: #FFE0A0;    /* Hover luminous gold */
+  --on-primary: #121110;         /* Deep charcoal ink on vintage gold (12.1:1 AAA) */
+  --primary-text: #F7C873;       /* Vintage Gold for active text & badges (12.1:1 AAA) */
+  --link: #82C8E6;               /* Muted cyan / classic link (10.18:1 AAA) */
+  --focus-ring: #F7C873;         /* Vintage Gold focus ring */
 
-  /* ─── 10% UTILITY & SEMANTIC TOKENS ─── */
-  --tag-bg: #252420;
-  --tag-text: #d8d4ca;
-  --tag-border: #3d3a34;
+  /* Semantic & Evidence Accents */
+  --evidence-red: #8A421D;       /* Aged Copper evidence marker */
+  --evidence-red-text: #E57368;  /* Soft coral / red text (6.26:1 AAA) */
+  --on-evidence-red: #FFF4E8;
+  --glass: #78C6CE;              /* Soft teal / museum glass (9.66:1 AAA) */
+  --success: #8EC07C;            /* Sage green verified indicator (8.95:1 AAA) */
+  --signal-amber: #BE6816;       /* Muted Amber investigation status */
 
-  --utility-info-bg: #1a2d3d;
-  --utility-info-hover-bg: #233c52;
-  --utility-info-text: #8cc8ff;
-  --utility-info-border: #2e4d66;
+  /* Neutral Dark Tints */
+  --tint-parchment: #221E19;     /* Dark archival dossier paper */
+  --tint-brass: #2B251B;         /* Dark aged brass tint */
+  --tint-sepia: #26201A;         /* Dark sepia tint */
+  --tint-verdigris: #19241C;     /* Dark weathered copper tint */
+  --tint-slate: #1A2228;         /* Dark slate blue tint */
+  --tint-oxblood: #281715;       /* Dark oxblood / error tint */
 
-  --color-yellow-sticker: #e8cf7a;
-  --color-on-sticker: #0a0906;
-  --color-purple-stripe: #3b2366;
-  --color-link: #7dc4e4;
+  --shadow: #0A0807;             /* Flat offset shadow */
 
-  --tint-olive: #2b2922;
-  --tint-sage: #2d4a3a;
-  --tint-salmon: #522320;
-  --tint-peach: #4d331b;
-  --tint-lime: #224028;
-  --tint-sky: #1e3545;
-  --tint-steel: #252420;
-  --tint-periwinkle: #2d3154;
+  /* ─── Semantic Aliases mapped directly to DESIGN-codetector-parallax.md ─── */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-pressed);
+  --color-primary-subtle: var(--tint-parchment);
+  --color-on-primary: var(--on-primary);
+  --color-primary-text: var(--primary-text);
+  --color-accent-ink: var(--primary-text);
+
+  --color-frame-ink: var(--frame);
+  --color-banner-bg: var(--frame);
+  --color-banner-text: var(--on-frame);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-card: var(--surface);
+  --surface-striped: var(--surface-sunken);
+  --surface-sage-light: var(--surface);
+  --surface-steel-light: var(--surface-sunken);
+  --surface-sky-light: var(--tint-slate);
+  --surface-salmon-light: var(--tint-oxblood);
+  --surface-gold-light: var(--tint-brass);
+
+  /* Case-File & Dossier Parchment Tokens */
+  --color-dossier-paper: var(--surface);
+  --color-dossier-ink: var(--ink);
+
+  /* Typography & Ink Hierarchy (15.6:1 on Canvas) */
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+
+  /* Architectural Neutral Borders */
+  --color-hairline: var(--border-soft);
+  --border-color: var(--border-soft);
+  --border-strong: var(--border);
+  --color-focus: var(--focus-ring);
+
+  /* Primary Feature CTA Button */
+  --btn-primary-bg: var(--primary);
+  --btn-primary-hover-bg: var(--primary-pressed);
+  --btn-primary-text: var(--on-primary);
+  --btn-primary-border: var(--border);
+
+  /* Utility & Semantic Tokens */
+  --tag-bg: var(--surface-raised);
+  --tag-text: var(--ink);
+  --tag-border: var(--border);
+
+  --utility-info-bg: var(--tint-slate);
+  --utility-info-hover-bg: var(--surface-raised);
+  --utility-info-text: var(--glass);
+  --utility-info-border: var(--border);
+
+  --color-yellow-sticker: var(--primary);
+  --color-on-sticker: var(--on-primary);
+  --color-purple-stripe: var(--glass);
+  --color-link: var(--link);
 
   /* Semantic Status Badges */
-  --badge-success-bg: #183322;
-  --badge-success-text: #8ee0a8;
-  --badge-success-border: #2b5c3d;
+  --badge-success-bg: var(--tint-verdigris);
+  --badge-success-text: var(--success);
+  --badge-success-border: var(--border);
 
-  --badge-error-bg: #3b1a19;
-  --badge-error-text: #ffaba6;
-  --badge-error-border: #75302d;
+  --badge-error-bg: var(--tint-oxblood);
+  --badge-error-text: var(--evidence-red-text);
+  --badge-error-border: var(--evidence-red);
 
-  --badge-running-bg: #332812;
-  --badge-running-text: #f2d06b;
-  --badge-running-border: #80641b;
+  --badge-running-bg: var(--tint-brass);
+  --badge-running-text: var(--primary-text);
+  --badge-running-border: var(--border);
 
-  /* SQL Syntax Utility Palette (Dark Mode) */
-  --sql-kw: #7aa2f7;
-  --sql-fn: #bb9af7;
-  --sql-str: #9ece6a;
-  --sql-num: #ff9e64;
-  --sql-comment: #787368;
+  /* SQL Syntax Utility Palette (Midnight Investigation) */
+  --sql-kw: #F7C873;
+  --sql-fn: #F3B487;
+  --sql-str: #FAEBCD;
+  --sql-num: #F7C873;
+  --sql-comment: #968673;
+  --color-editor-selection: rgba(247, 200, 115, 0.28);
+  --color-editor-caret: #F7C873;
 
   /* ERD Canvas Tokens */
-  --erd-grid-dot: #262420;
-  --erd-line: #5a554c;
-  --erd-line-active: #c9a227;
+  --erd-grid-dot: var(--border-soft);
+  --erd-line: var(--border);
+  --erd-line-active: var(--primary);
 
-  /* Unified Typography (Full Vietnamese Unicode & Diacritic Coverage) */
-  --font-display: "Be Vietnam Pro", "Segoe UI", "Arial Black", Roboto, Arial, sans-serif;
-  --font-ui: "Be Vietnam Pro", "Segoe UI", Roboto, "Helvetica Neue", Arial, Tahoma, sans-serif;
+  /* Modal Scrim */
+  --scrim-modal: rgba(12, 10, 9, 0.88);
+
+  /* Unified Typography with Full Vietnamese Diacritic Harmony */
+  --font-display: "Be Vietnam Pro", "Arial Black", system-ui, -apple-system, sans-serif;
+  --font-ui: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-body: "Noto Serif", "Times New Roman", Times, Georgia, serif;
-  --font-mono: "JetBrains Mono", Consolas, "Cascadia Mono", "Courier New", monospace;
+  --font-mono: "JetBrains Mono", Consolas, "Cascadia Code", "Courier New", monospace;
 
   /* Spacing tokens */
   --space-xxs: 2px;
@@ -112,88 +163,155 @@
 
 :root[data-theme="light"],
 [data-theme="light"] {
-  /* ─── 5% MAIN FEATURE ACCENT: Antique Gold (#c9a227) ─── */
-  --color-primary: #c9a227;
-  --color-primary-hover: #b8921f;
-  --color-primary-subtle: rgba(201, 162, 39, 0.14);
-  --color-on-primary: #0a0906;
+  color-scheme: light;
 
-  /* ─── 85% DOMINANT LIGHT NEUTRALS (Paper White & Warm Alabaster) ─── */
-  --color-frame-ink: #141311;
-  --color-canvas: #ffffff;
-  --color-surface: #f7f6f2;
-  --color-surface-elevated: #efede6;
-  --surface-striped: #faf9f6;
-  --surface-sage-light: #f4f2ec;
-  --surface-steel-light: #ebe8df;
-  --surface-sky-light: #f0eee8;
-  --surface-salmon-light: #fbeae8;
-  --surface-gold-light: #f3f0e6;
+  /* ─── LIGHT THEME: VINTAGE INVESTIGATION ARCHIVE (MINIMALIST EDITION) ─── */
+  /* Main Accent Color #F7C873 reserved EXCLUSIVELY for Main Features & Active Utilities */
+  --canvas: #F8F6F0;             /* Clean, quiet, breathable archival canvas (16.4:1 ink) */
+  --surface: #FFFFFF;            /* Pure clean paper desk & dossier surfaces (17.8:1 ink) */
+  --surface-sunken: #F1EFEA;     /* Subtle neutral sunken wells & code terminals */
+  --surface-raised: #FFFFFF;     /* Raised dossier paper cards */
+  --frame: #1D1711;              /* Deep black-brown frame bar */
+  --on-frame: #FFFFFF;           /* Warm archival paper on frame */
 
-  /* Typography & Ink Hierarchy */
-  --color-ink: #141311;
-  --color-muted: #666157;
-  --color-banner-text: #f7f6f2;
+  --ink: #1D1711;                /* Deep brown-black typography (16.4:1 AAA on #F8F6F0, 17.8:1 on #FFFFFF) */
+  --ink-muted: #6B5E50;          /* Muted archival typography (7.1:1 AAA) */
+  --ink-subtle: #8E8070;         /* Subtle caption & comment typography (4.5:1 AA) */
 
-  /* Clean Neutral Structural Borders */
-  --color-hairline: #d4d0c5;
-  --border-color: #c8c3b6;
-  --border-strong: #9e9889;
+  --border: #8C7A68;             /* Subtle, elegant architectural border (3.8:1 AAA UI) */
+  --border-soft: #DDD6CC;        /* Very gentle structural hairline divider */
 
-  /* Primary Feature CTA Button (Antique Gold) */
-  --btn-primary-bg: #c9a227;
-  --btn-primary-hover-bg: #d9b232;
-  --btn-primary-text: #0a0906;
-  --btn-primary-border: #141311;
+  /* Primary Action & Brand Accents — Reserved for Primary CTAs & Active Utilities */
+  --primary: #F7C873;            /* Vintage Honey Gold for primary CTA button fills & active highlights */
+  --primary-pressed: #E5AC52;    /* Deeper Honey Amber on hover/active */
+  --on-primary: #1D1711;         /* Deep brown ink on vintage gold (11.4:1 AAA) */
+  --primary-text: #964F04;       /* Rich Amber Copper for gold text & headers (5.7:1 AA on #F8F6F0) */
+  --link: #0044CC;               /* Vintage investigation link blue (7.2:1 AAA) */
+  --focus-ring: #F7C873;         /* Vintage Gold focus ring */
 
-  /* ─── 10% UTILITY & SEMANTIC TOKENS ─── */
-  --tag-bg: #ffffff;
-  --tag-text: #2c2a26;
-  --tag-border: #b5afa0;
+  /* Semantic & Evidence Accents */
+  --evidence-red: #CC5803;       /* Burnt Orange evidence marker */
+  --evidence-red-text: #A33800;  /* High contrast burnt orange text (6.2:1 AAA) */
+  --on-evidence-red: #FFFFFF;
+  --glass: #1A5C7A;              /* Archival museum teal / glass (6.8:1 AAA) */
+  --success: #3B6E32;            /* Vintage deep green verified stamp (5.6:1 AAA) */
+  --signal-amber: #FF9505;       /* Signal Amber status marker */
 
-  --utility-info-bg: #e0effa;
-  --utility-info-hover-bg: #cce4f7;
-  --utility-info-text: #144366;
-  --utility-info-border: #8ab8de;
+  /* Neutral Minimalist Tints */
+  --tint-parchment: #F4EFE6;     /* Subtle neutral tint */
+  --tint-brass: #F2EADA;         /* Aged brass tint */
+  --tint-sepia: #EDE5D8;         /* Sepia tint */
+  --tint-verdigris: #E2ECE3;     /* Weathered verdigris tint */
+  --tint-slate: #E4ECF0;         /* Slate blue tint */
+  --tint-oxblood: #F5EAE8;       /* Soft oxblood tint */
 
-  --color-yellow-sticker: #f5df8b;
-  --color-on-sticker: #141311;
-  --color-purple-stripe: #2c1a4d;
-  --color-link: #0044cc;
+  --shadow: #725E49;             /* Clean flat offset shadow */
 
-  --tint-olive: #e6e2d3;
-  --tint-sage: #4a7c59;
-  --tint-salmon: #c94a42;
-  --tint-peach: #d98245;
-  --tint-lime: #3b7a47;
-  --tint-sky: #2d6a99;
-  --tint-steel: #e6e3da;
-  --tint-periwinkle: #525c9e;
+  /* ─── Semantic Aliases mapped directly to DESIGN-codetector-parallax.md ─── */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-pressed);
+  --color-primary-subtle: var(--tint-parchment);
+  --color-on-primary: var(--on-primary);
+  --color-primary-text: var(--primary-text);
+  --color-accent-ink: var(--primary-text);
+
+  --color-frame-ink: var(--frame);
+  --color-banner-bg: var(--surface);
+  --color-banner-text: var(--ink);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-sunken);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-card: var(--surface);
+  --surface-striped: var(--surface-sunken);
+  --surface-sage-light: var(--surface);
+  --surface-steel-light: var(--surface-sunken);
+  --surface-sky-light: var(--tint-slate);
+  --surface-salmon-light: var(--tint-oxblood);
+  --surface-gold-light: var(--tint-brass);
+
+  /* Case-File & Dossier Parchment Tokens */
+  --color-dossier-paper: var(--surface);
+  --color-dossier-ink: var(--ink);
+
+  /* Typography & Ink Hierarchy (16.46:1 on Canvas) */
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+
+  /* Architectural Neutral Borders */
+  --color-hairline: var(--border-soft);
+  --border-color: var(--border-soft);
+  --border-strong: var(--border);
+  --color-focus: var(--focus-ring);
+
+  /* Primary Feature CTA Button */
+  --btn-primary-bg: var(--primary);
+  --btn-primary-hover-bg: var(--primary-pressed);
+  --btn-primary-text: var(--on-primary);
+  --btn-primary-border: var(--border);
+
+  /* Utility & Semantic Tokens */
+  --tag-bg: var(--surface-sunken);
+  --tag-text: var(--ink);
+  --tag-border: var(--border);
+
+  --utility-info-bg: var(--tint-slate);
+  --utility-info-hover-bg: var(--surface-sunken);
+  --utility-info-text: var(--glass);
+  --utility-info-border: var(--border);
+
+  --color-yellow-sticker: var(--primary);
+  --color-on-sticker: var(--on-primary);
+  --color-purple-stripe: var(--glass);
+  --color-link: var(--link);
 
   /* Semantic Status Badges */
-  --badge-success-bg: #dcf2e4;
-  --badge-success-text: #134e2a;
-  --badge-success-border: #7bc494;
+  --badge-success-bg: var(--tint-verdigris);
+  --badge-success-text: var(--success);
+  --badge-success-border: var(--border);
 
-  --badge-error-bg: #fde2e0;
-  --badge-error-text: #7d1d18;
-  --badge-error-border: #e08b86;
+  --badge-error-bg: var(--tint-oxblood);
+  --badge-error-text: var(--evidence-red-text);
+  --badge-error-border: var(--evidence-red);
 
-  --badge-running-bg: #fef3c7;
-  --badge-running-text: #784f09;
-  --badge-running-border: #d9b04c;
+  --badge-running-bg: var(--tint-brass);
+  --badge-running-text: var(--primary-text);
+  --badge-running-border: var(--border);
 
-  /* SQL Syntax Utility Palette (Light Mode) */
-  --sql-kw: #0033b3;
-  --sql-fn: #5a2ca0;
-  --sql-str: #1f6b2e;
-  --sql-num: #b34700;
-  --sql-comment: #787368;
+  /* SQL Syntax Utility Palette (Vintage Investigation Archive) */
+  --sql-kw: #963B00;
+  --sql-fn: #8A461F;
+  --sql-str: #74511A;
+  --sql-num: #7B4000;
+  --sql-comment: #665849;
+  --color-editor-selection: rgba(247, 200, 115, 0.42);
+  --color-editor-caret: #A54300;
 
   /* ERD Canvas Tokens */
-  --erd-grid-dot: #dedad0;
-  --erd-line: #8c8577;
-  --erd-line-active: #b8921f;
+  --erd-grid-dot: var(--border-soft);
+  --erd-line: var(--border);
+  --erd-line-active: var(--primary-text);
+
+  /* Modal Scrim */
+  --scrim-modal: rgba(29, 23, 17, 0.76);
+
+  /* Unified Typography with Full Vietnamese Diacritic Harmony */
+  --font-display: "Be Vietnam Pro", "Arial Black", system-ui, -apple-system, sans-serif;
+  --font-ui: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: "Noto Serif", "Times New Roman", Times, Georgia, serif;
+  --font-mono: "JetBrains Mono", Consolas, "Cascadia Code", "Courier New", monospace;
+
+  /* Spacing tokens */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-s: 6px;
+  --space-sm: 8px;
+  --space-m: 10px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-xxl: 24px;
 }
 
 *,
@@ -213,10 +331,12 @@ body,
   overflow: hidden;
   background-color: var(--color-frame-ink);
   color: var(--color-ink);
-  font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.4;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Custom Architectural Scrollbars */
@@ -244,8 +364,13 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 [role="button"]:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.cp-btn-primary:focus-visible {
+  outline: 2px solid var(--color-frame-ink);
+  outline-offset: 2px;
 }
 
 /* Active Resize Cursor Locks */
@@ -284,7 +409,7 @@ textarea:focus-visible,
 
 /* ─── Top Banner (Synchronized across Metabase & Codetector Parallax) ─── */
 .cp-top-banner {
-  background-color: var(--color-frame-ink);
+  background-color: var(--color-banner-bg);
   color: var(--color-banner-text);
   padding: 8px 14px;
   display: flex;
@@ -300,11 +425,12 @@ textarea:focus-visible,
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 220px;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .cp-logo-tile {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border: 1px solid var(--border-strong);
   padding: 2px 6px;
   display: flex;
@@ -338,7 +464,7 @@ textarea:focus-visible,
 .cp-brand-sub {
   font-family: var(--font-body);
   font-size: 11px;
-  color: #9e998e;
+  color: var(--color-muted);
   font-style: italic;
 }
 
@@ -348,21 +474,27 @@ textarea:focus-visible,
   justify-content: center;
   gap: 12px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cp-event-title {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
   line-height: 1.15;
   color: var(--color-banner-text);
   text-transform: uppercase;
   margin: 0;
   letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .cp-event-title-gold {
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 /* Utility & Status Sticker Badges */
@@ -380,13 +512,14 @@ textarea:focus-visible,
   align-items: center;
   gap: 5px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cp-top-banner .cp-sticker-badge,
 .cp-cta-block-gold .cp-sticker-badge {
-  background-color: #242320;
-  color: #d8d4ca;
-  border: 1px solid #3d3a34;
+  background-color: var(--color-surface-elevated);
+  color: var(--color-ink);
+  border: 1px solid var(--border-strong);
 }
 
 .cp-sticker-badge-running {
@@ -407,6 +540,14 @@ textarea:focus-visible,
   border: 1px solid var(--badge-error-border);
 }
 
+.cp-sticker-badge-score {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: 1px solid var(--btn-primary-border);
+  font-weight: 700;
+  padding: 3px 10px;
+}
+
 .cp-sticker-purple-pill {
   background-color: var(--utility-info-bg);
   color: var(--utility-info-text);
@@ -420,25 +561,26 @@ textarea:focus-visible,
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  min-width: 220px;
+  min-width: 0;
+  flex-shrink: 0;
   position: relative;
 }
 
 .cp-phone-callout {
   background-color: transparent;
-  color: #b5b0a4;
+  color: var(--color-muted);
   font-family: var(--font-ui);
   font-size: 11px;
   font-weight: 700;
   padding: 4px 8px;
-  border: 1px solid #3d3a34;
+  border: 1px solid var(--border-color);
   white-space: nowrap;
 }
 
 .cp-theme-toggle {
-  background-color: #1f1e1b;
-  color: #ebe7de;
-  border: 1px solid #3d3a34;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--border-color);
   font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 700;
@@ -450,7 +592,7 @@ textarea:focus-visible,
   text-transform: uppercase;
   user-select: none;
   white-space: nowrap;
-  transition: border-color 0.12s ease, color 0.12s ease;
+  transition: border-color 0.12s ease, color 0.12s ease, background-color 0.12s ease;
 }
 
 .cp-theme-toggle:hover {
@@ -463,9 +605,9 @@ textarea:focus-visible,
 }
 
 .cp-profile-trigger {
-  background-color: #1f1e1b;
-  color: #ebe7de;
-  border: 1px solid #3d3a34;
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--border-color);
   font-family: var(--font-ui);
   font-size: 12px;
   font-weight: 700;
@@ -475,7 +617,7 @@ textarea:focus-visible,
   align-items: center;
   gap: 8px;
   text-transform: uppercase;
-  transition: border-color 0.12s ease;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
 }
 
 .cp-profile-trigger:hover {
@@ -663,8 +805,8 @@ textarea:focus-visible,
 }
 
 .cp-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  border-color: var(--color-focus);
+  outline: 1px solid var(--color-focus);
 }
 
 /* ─── Synchronized Ribbon Card Header (Used across ALL columns in both apps) ─── */
@@ -672,16 +814,17 @@ textarea:focus-visible,
   background-color: var(--color-surface);
   color: var(--color-ink);
   border-bottom: 1px solid var(--border-strong);
-  padding: 0 12px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  row-gap: 6px;
   flex-shrink: 0;
-  height: 42px;
   min-height: 42px;
-  max-height: 42px;
+  height: auto;
   box-sizing: border-box;
+  flex-wrap: wrap;
 }
 
 .cp-ribbon-header-left {
@@ -689,6 +832,7 @@ textarea:focus-visible,
   align-items: center;
   gap: 8px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .cp-ribbon-swatch {
@@ -705,7 +849,7 @@ textarea:focus-visible,
 
 .cp-ribbon-title {
   font-family: var(--font-ui);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.3px;
@@ -713,6 +857,9 @@ textarea:focus-visible,
   color: var(--color-ink);
   margin: 0;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .cp-ribbon-actions {
@@ -871,7 +1018,7 @@ textarea:focus-visible,
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background-color: var(--surface-sage-light);
+  background-color: var(--color-surface);
   overflow-y: auto;
 }
 
@@ -885,9 +1032,10 @@ textarea:focus-visible,
 }
 
 .cp-cta-block-gold {
-  background-color: var(--color-primary);
-  color: var(--color-on-primary);
-  border-right: 1px solid var(--border-strong);
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  border-right: 1px solid var(--border-color);
+  border-top: 3px solid var(--color-primary);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -931,9 +1079,9 @@ textarea:focus-visible,
   border-left: 3px solid var(--color-primary);
   padding: 12px 14px;
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1.05;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
   text-transform: uppercase;
 }
 
@@ -954,7 +1102,7 @@ textarea:focus-visible,
   flex-direction: column;
   min-height: 0;
   flex-shrink: 0;
-  background-color: var(--surface-sage-light);
+  background-color: var(--color-surface);
 }
 
 .cp-main-pane {
@@ -1547,12 +1695,14 @@ textarea:focus-visible,
 /* 1. Persistent Question Sidebar */
 .cp-question-sidebar {
   width: 285px;
-  min-width: 220px;
-  background-color: var(--surface-sage-light);
+  min-width: 240px;
+  max-width: 380px;
+  background-color: var(--color-surface);
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .cp-sidebar-header {
@@ -1639,17 +1789,29 @@ textarea:focus-visible,
 
 .cp-question-item:not(.cp-question-item-locked):hover {
   border-color: var(--border-strong);
+  background-color: var(--color-card);
 }
 
 .cp-question-item-active {
-  border-color: var(--color-primary) !important;
-  box-shadow: inset 3px 0 0 var(--color-primary);
-  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--border-strong) !important;
+  border-left: 4px solid var(--color-primary) !important;
+  background-color: var(--color-surface);
 }
 
+/* Locked Mission Card — Sharp Architectural Distinction, No Global Opacity Fading */
 .cp-question-item-locked {
-  opacity: 0.62;
   background-color: var(--surface-steel-light);
+  border: 1px dashed var(--border-color);
+}
+
+.cp-question-item-locked .cp-q-number-badge {
+  background-color: var(--color-surface);
+  border-color: var(--border-color);
+  color: var(--color-muted);
+}
+
+.cp-question-item-locked .cp-q-title-text {
+  color: var(--color-muted);
 }
 
 .cp-question-item-main {
@@ -1669,6 +1831,8 @@ textarea:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .cp-q-number-badge {
@@ -1687,6 +1851,7 @@ textarea:focus-visible,
   align-items: flex-start;
   justify-content: space-between;
   gap: 6px;
+  word-break: break-word;
 }
 
 .cp-q-title-text {
@@ -1734,15 +1899,154 @@ textarea:focus-visible,
   gap: 6px;
 }
 
+/* ─── Investigation Hint Box & Options Card Styles ─── */
+.cp-hint-box-container {
+  border: 1px solid var(--border-strong);
+  background-color: var(--color-surface);
+  box-shadow: 2px 2px 0px var(--color-frame-ink);
+  padding: 12px;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cp-hint-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cp-hint-box-title {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.4px;
+}
+
+.cp-hint-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cp-hint-option-card {
+  background-color: var(--color-canvas);
+  border: 1px solid var(--border-strong);
+  box-shadow: 2px 2px 0px var(--color-frame-ink);
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+  position: relative;
+}
+
+.cp-hint-option-card:hover:not(:disabled) {
+  border-color: var(--color-focus);
+}
+
+.cp-hint-option-card:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.cp-hint-option-card:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--color-frame-ink);
+}
+
+.cp-hint-option-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.cp-hint-option-card-used {
+  background-color: var(--badge-running-bg) !important;
+  border-color: var(--badge-running-border) !important;
+  cursor: default !important;
+  opacity: 1 !important;
+}
+
+.cp-hint-option-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cp-hint-option-name {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  letter-spacing: 0.4px;
+}
+
+.cp-hint-option-penalty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--badge-error-text);
+  background-color: var(--badge-error-bg);
+  border: 1px solid var(--badge-error-border);
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.cp-hint-option-card-used .cp-hint-option-penalty {
+  color: var(--badge-running-text);
+  background-color: transparent;
+  border-color: var(--badge-running-border);
+}
+
+.cp-hint-option-desc {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.cp-hint-delivered-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--badge-success-text);
+  background-color: var(--badge-success-bg);
+  border: 1px solid var(--badge-success-border);
+  padding: 2px 6px;
+  margin-top: 2px;
+}
+
 /* 2. Center Case Dossier & Answer Submission Column */
 .cp-case-column {
-  width: 460px;
-  min-width: 300px;
+  width: 500px;
+  min-width: 320px;
+  max-width: 1400px;
+  height: 100%;
+  max-height: 100%;
   background-color: var(--color-canvas);
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
 }
 
 .cp-toolbar-strip {
@@ -1792,25 +2096,57 @@ textarea:focus-visible,
 }
 
 .cp-case-scroll {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) var(--color-canvas);
+}
+
+.cp-case-scroll > * {
+  flex-shrink: 0 !important;
+  min-height: min-content;
+}
+
+.cp-case-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cp-case-scroll::-webkit-scrollbar-track {
+  background: var(--color-canvas);
+  border-left: 1px solid var(--border-color);
+}
+
+.cp-case-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 0px;
+}
+
+.cp-case-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 
 .cp-dossier-card {
   border: 1px solid var(--border-strong);
-  background-color: var(--color-surface);
+  background-color: var(--color-card);
   box-shadow: 3px 3px 0px var(--color-frame-ink);
+  overflow: visible;
+  flex-shrink: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cp-dossier-header {
   background-color: var(--color-surface-elevated);
   border-bottom: 1px solid var(--border-color);
   border-left: 3px solid var(--color-primary);
-  padding: 10px 12px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1818,17 +2154,19 @@ textarea:focus-visible,
 
 .cp-dossier-meta-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   border-bottom: 1px solid var(--border-color);
   background-color: var(--color-canvas);
 }
 
 .cp-dossier-meta-item {
-  padding: 6px 8px;
+  padding: 6px 10px;
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cp-dossier-meta-item:last-child {
@@ -1836,13 +2174,133 @@ textarea:focus-visible,
 }
 
 .cp-dossier-body {
-  padding: 12px 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   font-family: var(--font-body);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--color-ink);
+}
+
+.cp-story-panel {
+  background-color: var(--color-dossier-paper);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--border-strong);
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.68;
+  color: var(--color-dossier-ink);
+}
+
+/* ─── Markdown Content Formatting (Case Dossiers, Clues & Tasks) ─── */
+.cp-markdown {
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--color-ink);
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.cp-case-column .cp-markdown {
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.cp-markdown p {
+  margin: 0 0 10px 0;
+}
+
+.cp-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.cp-markdown strong,
+.cp-markdown b,
+.cp-markdown-inline strong,
+.cp-markdown-inline b {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.cp-markdown em,
+.cp-markdown i,
+.cp-markdown-inline em,
+.cp-markdown-inline i {
+  font-style: italic;
+}
+
+.cp-markdown code,
+.cp-markdown-inline code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background-color: var(--color-canvas);
+  border: 1px solid var(--border-color);
+  padding: 1px 5px;
+  color: var(--color-primary);
+  border-radius: 0px;
+}
+
+.cp-markdown pre {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background-color: var(--color-canvas);
+  border: 1px solid var(--border-strong);
+  overflow-x: auto;
+}
+
+.cp-markdown pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-ink);
+}
+
+.cp-markdown ul,
+.cp-markdown ol {
+  margin: 6px 0 10px 0;
+  padding-left: 20px;
+}
+
+.cp-markdown ul:last-child,
+.cp-markdown ol:last-child {
+  margin-bottom: 0;
+}
+
+.cp-markdown li {
+  margin-bottom: 4px;
+  line-height: 1.55;
+}
+
+.cp-markdown blockquote {
+  margin: 8px 0;
+  padding: 6px 12px;
+  background-color: var(--color-canvas);
+  border-left: 3px solid var(--color-primary);
+  border-top: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.cp-markdown a,
+.cp-markdown-inline a {
+  color: var(--color-link);
+  text-decoration: underline;
+}
+
+.cp-markdown a:hover,
+.cp-markdown-inline a:hover {
+  color: var(--color-primary);
+}
+
+.cp-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 12px 0;
 }
 
 /* 3. Interactive ERD Viewer Column */
@@ -1850,7 +2308,7 @@ textarea:focus-visible,
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-width: 300px;
   min-height: 0;
   background-color: var(--color-canvas);
   overflow: hidden;
@@ -1895,6 +2353,12 @@ textarea:focus-visible,
   z-index: 10;
 }
 
+.cp-erd-table-node-highlighted .cp-erd-table-header {
+  border-top: 2px solid var(--color-primary);
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
 .cp-erd-table-node-dimmed {
   opacity: 0.22;
 }
@@ -1912,7 +2376,7 @@ textarea:focus-visible,
 .cp-erd-table-header {
   background-color: var(--color-surface-elevated);
   border-bottom: 1px solid var(--border-strong);
-  border-top: 2px solid var(--color-primary);
+  border-top: 2px solid var(--border-color);
   padding: 5px 8px;
   font-family: var(--font-ui);
   font-size: 11px;
@@ -1938,7 +2402,7 @@ textarea:focus-visible,
   gap: 6px;
   font-family: var(--font-mono);
   font-size: 11px;
-  background-color: var(--color-canvas);
+  background-color: var(--color-surface);
   cursor: pointer;
 }
 
@@ -2094,21 +2558,40 @@ textarea:focus-visible,
 }
 
 @media (max-width: 1024px) {
+  .cp-page-frame {
+    padding: 4px;
+  }
   .cp-user-workstation {
     flex-direction: column;
     overflow-y: auto;
+    height: auto;
   }
   .cp-question-sidebar,
   .cp-case-column {
     width: 100% !important;
+    min-width: 0 !important;
     max-width: none !important;
     border-right: none;
     border-bottom: 1px solid var(--border-strong);
+  }
+  .cp-case-column {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+  }
+  .cp-case-scroll {
+    overflow-y: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    flex: none !important;
   }
   .cp-v-splitter {
     display: none;
   }
   .cp-erd-column {
+    width: 100% !important;
+    min-width: 0 !important;
     min-height: 480px;
   }
 }
@@ -2130,5 +2613,11 @@ textarea:focus-visible,
     height: 180px;
     border-right: none;
     border-bottom: 1px solid var(--border-strong);
+  }
+}
+
+@media (max-width: 480px) {
+  .cp-page-frame {
+    padding: 2px;
   }
 }

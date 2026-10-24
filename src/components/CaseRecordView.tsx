@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import type { QuestionDetailData } from '../types';
+import type { QuestionDetailData, QuestionInvestigationItem } from '../types';
+import { MarkdownView } from './MarkdownView';
 
 interface CaseRecordViewProps {
   detail: QuestionDetailData | null;
@@ -12,7 +13,8 @@ interface CaseRecordViewProps {
   onSubmitAnswer: (
     questionNumber: number,
     answerContent: string,
-    useRiskMove: boolean
+    investigationIndex?: number,
+    useRiskMove?: boolean
   ) => Promise<{
     isCorrect: boolean;
     feedbackMessage: string;
@@ -20,6 +22,8 @@ interface CaseRecordViewProps {
   } | null>;
   onSelectRelatedTable?: (tableName: string) => void;
   onNavigateQuestion: (questionNumber: number) => void;
+  onRequestHint?: (questionNumber: number, hintType: 'LOW' | 'HIGH') => Promise<void>;
+  requestingHintKey?: string | null;
 }
 
 export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
@@ -31,54 +35,569 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   isLiveConnected = true,
   style,
   onSubmitAnswer,
+  onRequestHint,
+  requestingHintKey,
 }) => {
-  const [answerInput, setAnswerInput] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [answerInputs, setAnswerInputs] = useState<Record<number, string>>({});
+  const [submittingInv, setSubmittingInv] = useState<number | null>(null);
   const [instantFeedback, setInstantFeedback] = useState<{
+    invIndex: number;
     isCorrect: boolean;
     message: string;
     nextQ: number | null;
   } | null>(null);
 
-  const q = detail?.question;
+  const [enlargedImage, setEnlargedImage] = useState<{ src: string; title: string } | null>(null);
 
-  // Reset local input & banner only when switching to a different question number
+  const q = detail?.question;
+  const currentInvIndex = q?.currentInvestigationIndex ?? 1;
+
+  // Reset inputs when switching question numbers
   useEffect(() => {
-    setAnswerInput('');
+    setAnswerInputs({});
     setInstantFeedback(null);
   }, [q?.questionNumber]);
 
-  const handleFormSubmit = async (e?: React.FormEvent) => {
+  const handleInputChange = (invIndex: number, value: string) => {
+    setAnswerInputs((prev) => ({ ...prev, [invIndex]: value }));
+  };
+
+  const handleFormSubmit = async (invIndex: number, e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!q || !answerInput.trim() || submitting) return;
-    setSubmitting(true);
+    if (!q || submittingInv !== null) return;
+    const inputVal = (answerInputs[invIndex] ?? '').trim();
+    if (!inputVal) return;
+
+    setSubmittingInv(invIndex);
     setInstantFeedback(null);
     try {
-      const res = await onSubmitAnswer(
-        q.questionNumber,
-        answerInput.trim(),
-        false
-      );
+      const res = await onSubmitAnswer(q.questionNumber, inputVal, invIndex, false);
       if (res) {
         setInstantFeedback({
+          invIndex,
           isCorrect: res.isCorrect,
           message: res.feedbackMessage,
           nextQ: res.nextQuestionUnlocked,
         });
         if (res.isCorrect) {
-          setAnswerInput('');
+          setAnswerInputs((prev) => ({ ...prev, [invIndex]: '' }));
         }
       }
     } finally {
-      setSubmitting(false);
+      setSubmittingInv(null);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      void handleFormSubmit();
-    }
+  const renderInvestigationCard = (inv: QuestionInvestigationItem) => {
+    const isCurrentActive =
+      inv.isUnlocked &&
+      inv.status === 'NOT_DONE' &&
+      inv.index === currentInvIndex;
+
+    const isSolved = inv.status === 'DONE';
+    const isExhausted = inv.status === 'FAILED';
+    const isLocked = !inv.isUnlocked;
+
+    const lowHintReq = detail?.unlockedHints?.find((h) => h.hint_type === 'LOW');
+    const highHintReq = detail?.unlockedHints?.find((h) => h.hint_type === 'HIGH');
+
+    return (
+      <section
+        key={inv.index}
+        className="cp-investigation-section"
+        style={{
+          border: isCurrentActive
+            ? '2px solid var(--color-primary)'
+            : isSolved
+              ? '1px solid var(--badge-success-border)'
+              : isExhausted
+                ? '1px solid var(--badge-error-border)'
+                : '1px solid var(--border-color)',
+          backgroundColor: isCurrentActive
+            ? 'var(--color-card)'
+            : isSolved
+              ? 'var(--badge-success-bg)'
+              : isExhausted
+                ? 'var(--badge-error-bg)'
+                : 'var(--color-canvas)',
+          borderRadius: '0px',
+          padding: '16px',
+          marginBottom: '16px',
+        }}
+      >
+        {/* Section Header: Title & Badges */}
+        <header
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginBottom: '12px',
+            borderBottom: '1px solid var(--border-color)',
+            paddingBottom: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                fontWeight: 800,
+                backgroundColor: isSolved
+                  ? 'var(--badge-success-bg)'
+                  : isExhausted
+                    ? 'var(--badge-error-bg)'
+                    : isCurrentActive
+                      ? 'var(--color-primary)'
+                      : 'var(--color-muted)',
+                color: isCurrentActive ? 'var(--color-on-primary)' : 'inherit',
+                padding: '3px 8px',
+                borderRadius: '0px',
+                letterSpacing: '0.5px',
+                border: isSolved
+                  ? '1px solid var(--badge-success-border)'
+                  : isExhausted
+                    ? '1px solid var(--badge-error-border)'
+                    : '1px solid transparent',
+              }}
+            >
+              MANH MỐI {inv.key}
+            </span>
+            {inv.title &&
+              inv.title.trim().toLowerCase() !== `manh mối ${inv.key.toLowerCase()}` &&
+              inv.title.trim().toLowerCase() !== 'manh mối' && (
+                <h4
+                  style={{
+                    margin: 0,
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '15px',
+                    fontWeight: 700,
+                    color: 'var(--color-ink)',
+                  }}
+                >
+                  {inv.title}
+                </h4>
+              )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {isSolved ? (
+              <span className="cp-sticker-badge cp-sticker-badge-success">
+                ✓ ĐÃ GIẢI QUYẾT (+{inv.earnedPoints || inv.basePoints} PTS)
+              </span>
+            ) : isExhausted ? (
+              <span className="cp-sticker-badge cp-sticker-badge-error">
+                ✕ HẾT LƯỢT THỬ (0 PTS)
+              </span>
+            ) : isLocked ? (
+              <span className="cp-sticker-badge">
+                🔒 ĐANG KHÓA
+              </span>
+            ) : (
+              <span className="cp-sticker-badge cp-sticker-badge-running">
+                ● ĐANG ĐIỀU TRA ({inv.attemptsUsed}/6)
+              </span>
+            )}
+          </div>
+        </header>
+
+        {/* Locked Placeholder View */}
+        {isLocked && (
+          <div
+            style={{
+              padding: '16px',
+              border: '1px dashed var(--border-color)',
+              backgroundColor: 'var(--color-surface-elevated)',
+              textAlign: 'center',
+              color: 'var(--color-muted)',
+              fontSize: '13px',
+              lineHeight: 1.6,
+            }}
+          >
+            <div style={{ fontSize: '20px', marginBottom: '6px' }}>🔒</div>
+            <strong>Nội dung {inv.title} đang được niêm phong.</strong>
+            <div>
+              Đội của bạn cần giải quyết hoặc hoàn thành lượt nộp của Manh mối trước đó để mở khóa hồ sơ này.
+            </div>
+          </div>
+        )}
+
+        {/* Unlocked Clue & Task Content */}
+        {!isLocked && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {/* Clue Story Narrative */}
+            {inv.clue && (
+              <MarkdownView
+                content={inv.clue}
+                style={{
+                  fontSize: '16px',
+                  lineHeight: 1.7,
+                  color: 'var(--color-ink)',
+                }}
+              />
+            )}
+
+            {/* Evidence Image Viewer */}
+            {inv.image && (
+              <figure
+                style={{
+                  margin: '8px 0',
+                  padding: '8px',
+                  backgroundColor: 'var(--color-canvas)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '0px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <img
+                  src={inv.image}
+                  alt={`Vật chứng ${inv.title}`}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '280px',
+                    objectFit: 'contain',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'zoom-in',
+                  }}
+                  onClick={() => setEnlargedImage({ src: inv.image!, title: `Vật chứng: ${inv.title}` })}
+                  title="Nhấn để phóng to vật chứng"
+                />
+                <figcaption
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: '11px',
+                    color: 'var(--color-muted)',
+                    letterSpacing: '0.2px',
+                  }}
+                >
+                  🔍 Hình ảnh vật chứng: {inv.title} (Nhấn ảnh để phóng to)
+                </figcaption>
+              </figure>
+            )}
+
+            {/* Task Prompt Box */}
+            <div
+              style={{
+                backgroundColor: 'var(--color-primary-subtle)',
+                border: '1px solid var(--border-color)',
+                borderLeft: '4px solid var(--color-primary)',
+                padding: '12px 14px',
+                borderRadius: '0px',
+              }}
+            >
+              <div
+                style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  color: 'var(--color-accent-ink)',
+                  letterSpacing: '0.4px',
+                  marginBottom: '4px',
+                }}
+              >
+                📋 {inv.taskTitle || `Nhiệm vụ ${inv.key}`}
+              </div>
+              {inv.taskDescription && (
+                <MarkdownView
+                  content={inv.taskDescription}
+                  style={{ fontSize: '15px', lineHeight: 1.65, color: 'var(--color-ink)' }}
+                />
+              )}
+              {inv.submissionFormat && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12px',
+                    color: 'var(--color-muted)',
+                    backgroundColor: 'var(--color-canvas)',
+                    padding: '4px 8px',
+                    border: '1px dashed var(--border-color)',
+                    display: 'inline-block',
+                    maxWidth: '100%',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  <strong>Định dạng nộp:</strong> <MarkdownView content={inv.submissionFormat} inline />
+                </div>
+              )}
+            </div>
+
+            {/* Instant Feedback Notice for this Investigation */}
+            {instantFeedback && instantFeedback.invIndex === inv.index && (
+              <div
+                role="status"
+                style={{
+                  padding: '10px 12px',
+                  border: instantFeedback.isCorrect
+                    ? '1px solid var(--badge-success-border)'
+                    : '1px solid var(--badge-error-border)',
+                  backgroundColor: instantFeedback.isCorrect
+                    ? 'var(--badge-success-bg)'
+                    : 'var(--badge-error-bg)',
+                  color: instantFeedback.isCorrect
+                    ? 'var(--badge-success-text)'
+                    : 'var(--badge-error-text)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span>{instantFeedback.isCorrect ? '✓' : '✕'}</span>
+                <span>{instantFeedback.message}</span>
+              </div>
+            )}
+
+            {/* Investigation Status: Solved, Failed, or Active Submission Form */}
+            {isSolved ? (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  border: '1px solid var(--badge-success-border)',
+                  backgroundColor: 'var(--badge-success-bg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    color: 'var(--badge-success-text)',
+                  }}
+                >
+                  🎯 ĐÁP ÁN CHÍNH THỨC ĐƯỢC XÁC THỰC
+                </div>
+                {inv.revealedAnswer && (
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      backgroundColor: 'var(--color-canvas)',
+                      padding: '6px 10px',
+                      border: '1px solid var(--border-color)',
+                      userSelect: 'all',
+                    }}
+                  >
+                    {inv.revealedAnswer}
+                  </div>
+                )}
+              </div>
+            ) : isExhausted ? (
+              <div
+                style={{
+                  padding: '10px 12px',
+                  border: '1px solid var(--badge-error-border)',
+                  backgroundColor: 'var(--badge-error-bg)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    color: 'var(--badge-error-text)',
+                  }}
+                >
+                  ✕ ĐÃ HẾT 6 LƯỢT THỬ — ĐÁP ÁN ĐƯỢC TIẾT LỘ
+                </div>
+                {inv.revealedAnswer && (
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: 'var(--color-ink)',
+                      backgroundColor: 'var(--color-canvas)',
+                      padding: '6px 10px',
+                      border: '1px solid var(--border-color)',
+                      userSelect: 'all',
+                    }}
+                  >
+                    {inv.revealedAnswer}
+                  </div>
+                )}
+              </div>
+            ) : isCurrentActive ? (
+              /* Active Submission Form for Current Investigation */
+              <form
+                onSubmit={(e) => handleFormSubmit(inv.index, e)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  borderTop: '1px solid var(--border-color)',
+                  paddingTop: '10px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                  }}
+                >
+                  <label
+                    htmlFor={`cp-answer-inv-${inv.index}`}
+                    style={{
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: 'var(--color-primary)',
+                    }}
+                  >
+                    NỘP ĐÁP ÁN CHO {inv.title}
+                  </label>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: inv.remainingAttempts <= 2 ? 'var(--badge-error-text)' : 'var(--color-muted)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {inv.remainingAttempts} / {inv.maxAttempts} lượt còn lại
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <input
+                    id={`cp-answer-inv-${inv.index}`}
+                    type="text"
+                    className="cp-input"
+                    placeholder={inv.submissionFormat ? `Định dạng: ${inv.submissionFormat}` : 'Nhập đáp án điều tra...'}
+                    value={answerInputs[inv.index] ?? ''}
+                    onChange={(e) => handleInputChange(inv.index, e.target.value)}
+                    style={{
+                      flex: '1 1 200px',
+                      minWidth: 0,
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '14px',
+                      padding: '8px 10px',
+                    }}
+                    disabled={submittingInv !== null}
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="cp-btn-primary"
+                    disabled={submittingInv !== null || !(answerInputs[inv.index] ?? '').trim()}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      padding: '8px 14px',
+                      fontSize: '12px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {submittingInv === inv.index ? 'ĐANG KIỂM TRA...' : '▶ NỘP ĐÁP ÁN'}
+                  </button>
+                </div>
+              </form>
+            ) : null}
+
+            {/* Investigation Hint Request Box */}
+            {onRequestHint && q && (
+              <div className="cp-hint-box-container">
+                <div className="cp-hint-box-header">
+                  <span className="cp-hint-box-title">
+                    💡 YÊU CẦU GỢI Ý ĐIỀU TRA ({inv.title})
+                  </span>
+                  {(lowHintReq || highHintReq) && (
+                    <span className="cp-sticker-badge cp-sticker-badge-running">
+                      ĐÃ DÙNG {(lowHintReq ? 1 : 0) + (highHintReq ? 1 : 0)}/2 GỢI Ý
+                    </span>
+                  )}
+                </div>
+
+                <div className="cp-hint-options-grid">
+                  {/* LOW HINT (-10 pts) */}
+                  <button
+                    type="button"
+                    className={[
+                      'cp-hint-option-card',
+                      lowHintReq ? 'cp-hint-option-card-used' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    disabled={
+                      Boolean(lowHintReq) ||
+                      requestingHintKey === `${q.questionNumber}-LOW` ||
+                      isSolved ||
+                      isExhausted
+                    }
+                    onClick={() => onRequestHint(q.questionNumber, 'LOW')}
+                  >
+                    <div className="cp-hint-option-top">
+                      <span className="cp-hint-option-name">LOW HINT</span>
+                      <span className="cp-hint-option-penalty">-10 PTS</span>
+                    </div>
+                    <div className="cp-hint-option-desc">
+                      {lowHintReq
+                        ? `Đã kích hoạt (${lowHintReq.status}): Trừ 10 điểm vào Tổng điểm trừ. BTC sẽ bàn giao gợi ý thực tế.`
+                        : 'Gợi ý sơ bộ định hướng tư duy điều tra (trừ 10 điểm).'}
+                    </div>
+                    {lowHintReq?.status === 'DELIVERED' && (
+                      <span className="cp-hint-delivered-badge">✓ BTC ĐÃ GIAO GỢI Ý</span>
+                    )}
+                  </button>
+
+                  {/* HIGH HINT (-25 pts) */}
+                  <button
+                    type="button"
+                    className={[
+                      'cp-hint-option-card',
+                      highHintReq ? 'cp-hint-option-card-used' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    disabled={
+                      Boolean(highHintReq) ||
+                      requestingHintKey === `${q.questionNumber}-HIGH` ||
+                      isSolved ||
+                      isExhausted
+                    }
+                    onClick={() => onRequestHint(q.questionNumber, 'HIGH')}
+                  >
+                    <div className="cp-hint-option-top">
+                      <span className="cp-hint-option-name">HIGH HINT</span>
+                      <span className="cp-hint-option-penalty">-25 PTS</span>
+                    </div>
+                    <div className="cp-hint-option-desc">
+                      {highHintReq
+                        ? `Đã kích hoạt (${highHintReq.status}): Trừ 25 điểm vào Tổng điểm trừ. BTC sẽ bàn giao gợi ý thực tế.`
+                        : 'Gợi ý chuyên sâu với cấu trúc SQL chi tiết (trừ 25 điểm).'}
+                    </div>
+                    {highHintReq?.status === 'DELIVERED' && (
+                      <span className="cp-hint-delivered-badge">✓ BTC ĐÃ GIAO GỢI Ý</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    );
   };
 
   return (
@@ -87,62 +606,80 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
       style={style}
       aria-label="Question Dossier and Answer Submission"
     >
-      {/* Synchronized Ribbon Header (Matches Metabase Ribbon Header) */}
+      {/* Synchronized Ribbon Header */}
       <div className="cp-ribbon-header">
-        <div className="cp-ribbon-header-left">
-          <span className="cp-ribbon-swatch" />
-          <h2 className="cp-ribbon-title">DOSSIER</h2>
-          <button
-            type="button"
-            className="cp-mini-tag-btn"
-            onClick={onToggleSidebar}
-            aria-expanded={isSidebarOpen}
-            title={
-              isSidebarOpen
-                ? 'Ẩn danh sách câu hỏi (Hide Questions List)'
-                : 'Hiện danh sách câu hỏi (Show Questions List)'
-            }
+        <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+          {!isSidebarOpen && (
+            <button
+              type="button"
+              className="cp-mini-tag-btn"
+              onClick={onToggleSidebar}
+              aria-expanded={false}
+              title="Hiện danh sách câu hỏi"
+              style={{ flexShrink: 0, marginRight: '4px' }}
+            >
+              ▶ HIỆN DS
+            </button>
+          )}
+          <span className="cp-ribbon-swatch" style={{ flexShrink: 0 }} />
+          <h2
+            className="cp-ribbon-title"
+            style={{ flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
           >
-            {isSidebarOpen ? '◀ HIDE LIST' : '▶ SHOW LIST'}
-          </button>
+            CASE RECORD
+          </h2>
         </div>
 
-        <div className="cp-ribbon-actions">
-          <span
-            className="cp-live-indicator"
-            title="Real-time status & points synchronization active"
-          >
+        <div className="cp-ribbon-actions" style={{ flexShrink: 0 }}>
+          <span className="cp-live-indicator" title="Đồng bộ trực tiếp với hệ thống">
             <span className="cp-live-dot" />
-            <span>{isLiveConnected ? 'LIVE SYNC' : 'SYNCING'}</span>
+            <span>{isLiveConnected ? 'LIVE' : 'SYNC'}</span>
           </span>
 
           {q && (
             <span className="cp-sticker-badge">
-              CASE #{String(q.questionNumber).padStart(2, '0')}
+              MẢNH GHÉP #{String(q.questionNumber).padStart(2, '0')}
             </span>
           )}
         </div>
       </div>
 
       {/* Main Scrollable Area */}
-      <div className="cp-case-scroll">
+      <div
+        className="cp-case-scroll"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         {loading && !q && (
-          <div className="cp-dossier-card" style={{ padding: '16px' }} aria-busy="true">
+          <div className="cp-dossier-card" style={{ padding: '16px', flexShrink: 0 }} aria-busy="true">
             <div style={{ fontFamily: 'var(--font-ui)', fontWeight: 700 }}>
-              LOADING CASE RECORD DOSSIER...
+              ĐANG TẢI HỒ SƠ ĐIỀU TRA...
             </div>
           </div>
         )}
 
         {error && !loading && (
-          <div className="cp-schema-notice-error" role="alert">
-            <strong>Case Access Error:</strong> {error}
+          <div className="cp-schema-notice-error" style={{ flexShrink: 0 }} role="alert">
+            <strong>Lỗi truy cập hồ sơ:</strong> {error}
           </div>
         )}
 
         {q && (
-          /* ─── COMBINED QUESTION DOSSIER & SUBMIT CARD ─── */
-          <article className="cp-dossier-card">
+          <article
+            className="cp-dossier-card"
+            style={{
+              flexShrink: 0,
+              width: '100%',
+              boxSizing: 'border-box',
+              overflow: 'visible',
+            }}
+          >
+            {/* Dossier Header: Chapter Title & Database Badge */}
             <header className="cp-dossier-header">
               <div
                 style={{
@@ -150,19 +687,20 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '8px',
+                  marginBottom: '4px',
                 }}
               >
                 <span
                   style={{
                     fontFamily: 'var(--font-ui)',
                     fontSize: '11px',
-                    fontWeight: 700,
-                    color: 'var(--color-primary)',
+                    fontWeight: 800,
+                    color: 'var(--color-accent-ink, var(--color-primary))',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.3px',
+                    letterSpacing: '0.4px',
                   }}
                 >
-                  INVESTIGATION QUESTION #{q.questionNumber} OF 8
+                  MẢNH GHÉP SỐ {q.questionNumber} / 3
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {q.targetDatabase && (
@@ -170,10 +708,10 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                       className="cp-sticker-badge"
                       style={{
                         backgroundColor: 'var(--color-canvas)',
-                        color: 'var(--color-primary)',
+                        color: 'var(--color-accent-ink, var(--color-primary))',
                         borderColor: 'var(--color-primary)',
                       }}
-                      title={`Cơ sở dữ liệu câu hỏi: ${q.targetDatabase}`}
+                      title={`Cơ sở dữ liệu: ${q.targetDatabase}`}
                     >
                       🗄️ {q.targetDatabase}
                     </span>
@@ -207,10 +745,10 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               </h3>
             </header>
 
-            {/* Question Information Bar: Status, Points, Attempts, Nước cờ mạo hiểm */}
+            {/* Information Grid: Status, Points, Attempts */}
             <div className="cp-dossier-meta-grid">
               <div className="cp-dossier-meta-item">
-                <span className="cp-score-cell-label">STATUS</span>
+                <span className="cp-score-cell-label">TRẠNG THÁI</span>
                 <span
                   className="cp-score-cell-val"
                   style={{
@@ -222,17 +760,12 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                           : 'var(--badge-running-text)',
                   }}
                 >
-                  {q.status.replace('_', ' ')}
-                  {q.status === 'DONE' && q.completedAt
-                    ? ` (${new Date(q.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })})`
-                    : ''}
+                  {q.status === 'DONE' ? 'HOÀN THÀNH' : q.status === 'FAILED' ? 'KẾT THÚC' : 'ĐANG THỰC HIỆN'}
                 </span>
               </div>
 
               <div className="cp-dossier-meta-item">
-                <span className="cp-score-cell-label">
-                  {q.status === 'DONE' ? 'POINTS EARNED' : q.status === 'FAILED' ? 'POINTS EARNED' : 'QUESTION VALUE'}
-                </span>
+                <span className="cp-score-cell-label">ĐIỂM ĐẠT ĐƯỢC</span>
                 <span
                   className="cp-score-cell-val"
                   style={{
@@ -245,69 +778,61 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     fontWeight: 800,
                   }}
                 >
-                  {q.status === 'DONE'
-                    ? `+${q.gainedPoints || q.basePoints} PTS`
-                    : q.status === 'FAILED'
-                      ? '0 PTS'
-                      : q.hasRiskMove
-                        ? `★ ${q.basePoints * 2} PTS (2X)`
-                        : `${q.basePoints} PTS`}
+                  +{q.gainedPoints ?? 0} / {q.basePoints} PTS
                 </span>
               </div>
 
               <div className="cp-dossier-meta-item">
-                <span className="cp-score-cell-label">ATTEMPTS</span>
+                <span className="cp-score-cell-label">TIẾN ĐỘ MANH MỐI</span>
                 <span className="cp-score-cell-val">
-                  {q.attemptsUsed}/{q.maxAttempts}
-                </span>
-              </div>
-
-              <div className="cp-dossier-meta-item">
-                <span className="cp-score-cell-label">NƯỚC CỜ MẠO HIỂM</span>
-                <span
-                  className="cp-score-cell-val"
-                  style={{
-                    color: q.hasRiskMove
-                      ? q.status === 'FAILED'
-                        ? 'var(--badge-error-text)'
-                        : 'var(--color-primary)'
-                      : 'var(--color-muted)',
-                  }}
-                >
-                  {q.hasRiskMove
-                    ? q.status === 'DONE'
-                      ? '★ RESOLVED (2X)'
-                      : q.status === 'FAILED'
-                        ? '✕ FAILED (0 PTS)'
-                        : '★ ACTIVE (2X)'
-                    : q.status === 'DONE' || q.status === 'FAILED'
-                      ? 'LOCKED'
-                      : 'NO'}
+                  {q.investigations?.filter((i) => i.status === 'DONE').length ?? 0} /{' '}
+                  {q.investigations?.length ?? 2}
                 </span>
               </div>
             </div>
 
-            {/* Unified Body: Question Content, Clues, Hints & Answer Submission */}
+            {/* Dossier Body */}
             <div className="cp-dossier-body">
-              <div>
+              {/* Dẫn truyện (Narrative Story Panel) */}
+              {(q.story || q.content) && (
                 <div
+                  className="cp-story-panel"
                   style={{
-                    fontFamily: 'var(--font-ui)',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: 'var(--color-muted)',
-                    marginBottom: '6px',
-                    letterSpacing: '0.3px',
+                    backgroundColor: 'var(--color-dossier-paper)',
+                    border: '1px solid var(--border-color)',
+                    borderLeft: '4px solid var(--color-primary)',
+                    padding: '14px 16px',
+                    borderRadius: '0px',
                   }}
                 >
-                  ĐỀ BÀI &amp; HỒ SƠ ĐIỀU TRA (CASE BRIEFING)
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-ui)',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      color: 'var(--color-dossier-ink)',
+                      letterSpacing: '0.4px',
+                      marginBottom: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <span>📜 DẪN TRUYỆN</span>
+                  </div>
+                  <MarkdownView
+                    content={q.story || q.content}
+                    style={{
+                      fontSize: '16px',
+                      lineHeight: 1.7,
+                      color: 'var(--color-dossier-ink)',
+                    }}
+                  />
                 </div>
-                <p style={{ margin: 0, color: 'var(--color-ink)', lineHeight: 1.6 }}>
-                  {q.content}
-                </p>
-              </div>
+              )}
 
+              {/* Clues Summary Box if Present */}
               {q.caseDossier?.clues && q.caseDossier.clues.length > 0 && (
                 <div
                   style={{
@@ -321,413 +846,191 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     style={{
                       fontFamily: 'var(--font-ui)',
                       fontSize: '11px',
-                      fontWeight: 700,
+                      fontWeight: 800,
                       textTransform: 'uppercase',
-                      color: 'var(--color-primary)',
+                      color: 'var(--color-accent-ink, var(--color-primary))',
                       marginBottom: '6px',
                       letterSpacing: '0.3px',
                     }}
                   >
-                    🔍 MANH MỐI TRỌNG TÂM (INVESTIGATIVE CLUES)
+                    🔍 LƯU Ý &amp; MANH MỐI TỔNG QUAN
                   </div>
                   <ul
                     style={{
                       margin: 0,
                       paddingLeft: '18px',
-                      fontSize: '13px',
-                      lineHeight: 1.55,
+                      fontSize: '15px',
+                      lineHeight: 1.65,
                     }}
                   >
                     {q.caseDossier.clues.map((clue, idx) => (
                       <li key={idx} style={{ marginBottom: '4px' }}>
-                        {clue}
+                        <MarkdownView content={clue} inline />
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              {/* Real-Life Hint Requests Status on this Question */}
-              {detail.unlockedHints && detail.unlockedHints.length > 0 && (
+              {/* Sequential Investigations List */}
+              <div style={{ marginTop: '8px' }}>
                 <div
                   style={{
-                    border: '1px solid var(--badge-running-border)',
-                    backgroundColor: 'var(--badge-running-bg)',
-                    padding: '8px 10px',
-                    fontSize: '12px',
+                    fontFamily: 'var(--font-ui)',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    color: 'var(--color-accent-ink, var(--color-primary))',
+                    letterSpacing: '0.4px',
+                    marginBottom: '10px',
                   }}
                 >
+                  HỆ THỐNG MANH MỐI ĐIỀU TRA TUẦN TỰ
+                </div>
+                {q.investigations && q.investigations.length > 0 ? (
+                  q.investigations.map((inv) => renderInvestigationCard(inv))
+                ) : (
+                  <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
+                    Không tìm thấy dữ liệu manh mối.
+                  </div>
+                )}
+              </div>
+
+              {/* Submission Attempt History for this Question */}
+              {detail.submissions && detail.submissions.length > 0 && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
                   <div
                     style={{
                       fontFamily: 'var(--font-ui)',
                       fontSize: '11px',
                       fontWeight: 700,
                       textTransform: 'uppercase',
-                      color: 'var(--badge-running-text)',
-                      marginBottom: '4px',
+                      color: 'var(--color-muted)',
+                      marginBottom: '8px',
                     }}
                   >
-                    💡 REAL-LIFE HINT REQUEST STATUS
+                    LỊCH SỬ NỘP ĐÁP ÁN (MẢNH GHÉP SỐ {q.questionNumber})
                   </div>
-                  {detail.unlockedHints.map((h) => (
-                    <div
-                      key={h.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        borderTop: '1px dotted var(--badge-running-border)',
-                        paddingTop: '4px',
-                        marginTop: '4px',
-                      }}
-                    >
-                      <span>
-                        <strong>{h.hint_type} HINT</strong> (-
-                        {h.deducted_points || h.suggested_penalty} pts)
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-ui)',
-                          fontSize: '10px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {h.status === 'DELIVERED'
-                          ? `✓ DELIVERED (-${h.deducted_points} PTS)`
-                          : h.status === 'REQUESTED'
-                            ? `⏳ PROCTOR DELIVERING (-${h.deducted_points || h.suggested_penalty} PTS APPLIED)`
-                            : '✕ NOT DELIVERED (0 PTS WAIVED)'}
-                      </span>
-                    </div>
-                  ))}
+                  <table className="cp-data-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '40px' }}>#</th>
+                        <th style={{ width: '90px' }}>Manh mối</th>
+                        <th>Đáp án đã nộp</th>
+                        <th style={{ width: '100px' }}>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.submissions.map((sub) => (
+                        <tr key={sub.id}>
+                          <td style={{ fontFamily: 'var(--font-mono)' }}>
+                            #{sub.attempt_number}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                            {sub.investigation_index === 1 ? 'Manh mối A' : sub.investigation_index === 2 ? 'Manh mối B' : `Mục #${sub.investigation_index}`}
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                            {sub.answer_content}
+                          </td>
+                          <td>
+                            <span
+                              className={[
+                                'cp-sticker-badge',
+                                sub.status === 'ACCEPTED'
+                                  ? 'cp-sticker-badge-success'
+                                  : sub.status === 'REJECTED'
+                                    ? 'cp-sticker-badge-error'
+                                    : 'cp-sticker-badge-running',
+                              ].join(' ')}
+                            >
+                              {sub.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
-
-              {/* ─── COMBINED SUBMIT SECTION ─── */}
-              <div
-                style={{
-                  borderTop: '1px solid var(--border-strong)',
-                  paddingTop: '12px',
-                  marginTop: '4px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '8px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="cp-ribbon-swatch" />
-                    <span className="cp-ribbon-title">SUBMIT</span>
-                  </div>
-                </div>
-
-                {/* Immediate Response Banner for Incorrect Submissions */}
-                {instantFeedback && !instantFeedback.isCorrect && (
-                  <div
-                    role="status"
-                    style={{
-                      padding: '10px 12px',
-                      border: '1px solid var(--badge-error-border)',
-                      backgroundColor: 'var(--badge-error-bg)',
-                      color: 'var(--badge-error-text)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      ✕ REJECTED — ANSWER DOES NOT MATCH CASE DATABASE
-                    </div>
-                    <div style={{ fontSize: '13px' }}>{instantFeedback.message}</div>
-                  </div>
-                )}
-
-                {q.status === 'DONE' ? (
-                  <>
-                    <div
-                      style={{
-                        padding: '12px 14px',
-                        border: '1px solid var(--badge-success-border)',
-                        backgroundColor: 'var(--badge-success-bg)',
-                        color: 'var(--badge-success-text)',
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '8px',
-                      }}
-                    >
-                      <span>
-                        ✓ QUESTION {q.questionNumber} COMPLETED (+{q.gainedPoints || q.basePoints} PTS AWARDED TO SCORE).
-                      </span>
-                      {q.completedAt && (
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                          ⏱ SOLVED AT {new Date(q.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                        </span>
-                      )}
-                    </div>
-
-                    {q.revealedAnswer && (
-                      <div
-                        style={{
-                          padding: '12px 14px',
-                          border: '2px solid var(--badge-success-border)',
-                          backgroundColor: 'rgba(46, 125, 50, 0.08)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontFamily: 'var(--font-ui)',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.4px',
-                            color: 'var(--badge-success-text)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <span>🎯 ĐÁP ÁN CHÍNH THỨC ĐƯỢC TIẾT LỘ (OFFICIAL REVEALED ANSWER)</span>
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '14px',
-                            fontWeight: 700,
-                            color: 'var(--color-ink)',
-                            backgroundColor: 'var(--color-canvas)',
-                            padding: '8px 12px',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '2px',
-                            userSelect: 'all',
-                          }}
-                        >
-                          {q.revealedAnswer}
-                        </div>
-                        {q.allAcceptedAnswers && q.allAcceptedAnswers.length > 1 && (
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-ui)',
-                              fontSize: '11px',
-                              color: 'var(--color-muted)',
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            <strong>Các dạng đáp án hợp lệ khác:</strong>{' '}
-                            {q.allAcceptedAnswers.slice(1).join(' | ')}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : q.status === 'FAILED' || q.remainingAttempts <= 0 ? (
-                  <>
-                    <div
-                      style={{
-                        padding: '12px',
-                        border: '1px solid var(--badge-error-border)',
-                        backgroundColor: 'var(--badge-error-bg)',
-                        color: 'var(--badge-error-text)',
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                      }}
-                    >
-                      ✕ ALL 6 ATTEMPTS EXHAUSTED ON QUESTION {q.questionNumber}.
-                    </div>
-
-                    {q.revealedAnswer && (
-                      <div
-                        style={{
-                          padding: '12px 14px',
-                          border: '2px solid var(--badge-error-border)',
-                          backgroundColor: 'rgba(211, 47, 47, 0.08)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontFamily: 'var(--font-ui)',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.4px',
-                            color: 'var(--badge-error-text)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <span>🎯 ĐÁP ÁN CHÍNH THỨC ĐƯỢC TIẾT LỘ (OFFICIAL REVEALED ANSWER)</span>
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '14px',
-                            fontWeight: 700,
-                            color: 'var(--color-ink)',
-                            backgroundColor: 'var(--color-canvas)',
-                            padding: '8px 12px',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '2px',
-                            userSelect: 'all',
-                          }}
-                        >
-                          {q.revealedAnswer}
-                        </div>
-                        {q.allAcceptedAnswers && q.allAcceptedAnswers.length > 1 && (
-                          <div
-                            style={{
-                              fontFamily: 'var(--font-ui)',
-                              fontSize: '11px',
-                              color: 'var(--color-muted)',
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            <strong>Các dạng đáp án hợp lệ khác:</strong>{' '}
-                            {q.allAcceptedAnswers.slice(1).join(' | ')}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <form
-                    onSubmit={handleFormSubmit}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-                  >
-                    <label
-                      htmlFor="cp-answer-box"
-                      style={{
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <span>INPUT YOUR INVESTIGATION ANSWER</span>
-                      <span style={{ color: 'var(--color-primary)' }}>
-                        {q.remainingAttempts} / {q.maxAttempts} ATTEMPTS REMAINING
-                      </span>
-                    </label>
-
-                    <textarea
-                      id="cp-answer-box"
-                      className="cp-input"
-                      rows={3}
-                      placeholder={
-                        q.caseDossier?.answer_format ||
-                        'Enter the exact ID, name, or license plate found in MuniDB_Hard...'
-                      }
-                      value={answerInput}
-                      onChange={(e) => setAnswerInput(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      style={{ resize: 'vertical', fontFamily: 'var(--font-mono)' }}
-                      required
-                    />
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'flex-end',
-                        gap: '10px',
-                      }}
-                    >
-                      <button
-                        type="submit"
-                        className="cp-btn-primary"
-                        disabled={submitting || !answerInput.trim()}
-                      >
-                        {submitting ? 'CHECKING DATABASE...' : '▶ SUBMIT ANSWER'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Submission Attempt History */}
-                {detail.submissions && detail.submissions.length > 0 && (
-                  <div style={{ marginTop: '6px' }}>
-                    <div
-                      style={{
-                        fontFamily: 'var(--font-ui)',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        color: 'var(--color-muted)',
-                        marginBottom: '6px',
-                      }}
-                    >
-                      SUBMISSION HISTORY (CÂU {q.questionNumber})
-                    </div>
-                    <table className="cp-data-table">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Answer Submitted</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {detail.submissions.map((sub) => (
-                          <tr key={sub.id}>
-                            <td style={{ fontFamily: 'var(--font-mono)', width: '36px' }}>
-                              #{sub.attempt_number}
-                            </td>
-                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                              {sub.answer_content}
-                            </td>
-                            <td style={{ width: '96px' }}>
-                              <span
-                                className={[
-                                  'cp-sticker-badge',
-                                  sub.status === 'ACCEPTED'
-                                    ? 'cp-sticker-badge-success'
-                                    : sub.status === 'REJECTED'
-                                      ? 'cp-sticker-badge-error'
-                                      : 'cp-sticker-badge-running',
-                                ].join(' ')}
-                              >
-                                {sub.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
             </div>
           </article>
         )}
       </div>
+
+      {/* Lightbox / Modal for Enlarged Evidence Images */}
+      {enlargedImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'var(--scrim-modal)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+          }}
+          onClick={() => setEnlargedImage(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '2px solid var(--border-strong)',
+              borderRadius: '0px',
+              padding: '12px',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: '1px solid var(--border-color)',
+                paddingBottom: '6px',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--font-ui)',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: 'var(--color-primary)',
+                  letterSpacing: '0.4px',
+                }}
+              >
+                {enlargedImage.title}
+              </span>
+              <button
+                type="button"
+                className="cp-mini-tag-btn"
+                onClick={() => setEnlargedImage(null)}
+                style={{ padding: '2px 8px', fontSize: '11px' }}
+              >
+                ✕ ĐÓNG
+              </button>
+            </div>
+            <img
+              src={enlargedImage.src}
+              alt={enlargedImage.title}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '75vh',
+                objectFit: 'contain',
+                border: '1px solid var(--border-color)',
+              }}
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 };
-

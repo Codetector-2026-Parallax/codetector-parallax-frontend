@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type {
   QuestionSummaryItem,
   TeamProgressInfo,
@@ -12,9 +12,8 @@ interface QuestionSidebarProps {
   selectedQuestionNumber: number;
   style?: React.CSSProperties;
   onSelectQuestion: (questionNumber: number) => void;
-  onRequestHint: (questionNumber: number, hintType: 'LOW' | 'HIGH') => Promise<void>;
-  requestingHintKey: string | null;
   onActivateRiskMove: (questionNumber: number) => Promise<void>;
+  onToggleSidebar?: () => void;
 }
 
 export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
@@ -24,43 +23,27 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
   selectedQuestionNumber,
   style,
   onSelectQuestion,
-  onRequestHint,
-  requestingHintKey,
-  onActivateRiskMove,
+  onToggleSidebar,
 }) => {
-  const [openHintMenuQ, setOpenHintMenuQ] = useState<number | null>(null);
-  const [activatingRiskQ, setActivatingRiskQ] = useState<number | null>(null);
-
   const completedCount = progress?.completedCount ?? 0;
-  const totalQuestions = progress?.totalQuestions ?? 8;
+  const totalQuestions = progress?.totalQuestions ?? 3;
   const pct = Math.min(100, Math.round((completedCount / totalQuestions) * 100));
-
-  const handleRiskMoveClick = async (questionNumber: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (activatingRiskQ !== null) return;
-    setActivatingRiskQ(questionNumber);
-    try {
-      await onActivateRiskMove(questionNumber);
-    } finally {
-      setActivatingRiskQ(null);
-    }
-  };
 
   const renderStatusBadge = (q: QuestionSummaryItem) => {
     if (!q.isUnlocked) {
       return (
-        <span className="cp-sticker-badge" title="Complete previous question to unlock">
-          🔒 LOCKED
+        <span className="cp-sticker-badge" title="Hoàn thành hồ sơ trước đó để mở khóa">
+          🔒 KHÓA
         </span>
       );
     }
     if (q.status === 'DONE') {
-      return <span className="cp-sticker-badge cp-sticker-badge-success">✓ DONE</span>;
+      return <span className="cp-sticker-badge cp-sticker-badge-success">✓ XONG</span>;
     }
     if (q.status === 'FAILED') {
-      return <span className="cp-sticker-badge cp-sticker-badge-error">✕ FAILED</span>;
+      return <span className="cp-sticker-badge cp-sticker-badge-error">✕ KẾT THÚC</span>;
     }
-    return <span className="cp-sticker-badge cp-sticker-badge-running">● NOT DONE</span>;
+    return <span className="cp-sticker-badge cp-sticker-badge-running">● ĐANG LÀM</span>;
   };
 
   return (
@@ -69,20 +52,36 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
       style={style}
       aria-label="Case Questions List Sidebar"
     >
-      {/* Synchronized Ribbon Card Header (Matches Metabase SchemaBrowser) */}
+      {/* Synchronized Ribbon Card Header */}
       <div className="cp-ribbon-header">
-        <div className="cp-ribbon-header-left">
-          <span className="cp-ribbon-swatch cp-ribbon-swatch-utility" />
-          <h2 className="cp-ribbon-title">QUESTIONS LIST</h2>
+        <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+          <span className="cp-ribbon-swatch cp-ribbon-swatch-utility" style={{ flexShrink: 0 }} />
+          <h2
+            className="cp-ribbon-title"
+            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+          >
+            PIECES LIST
+          </h2>
         </div>
-        <div className="cp-ribbon-actions">
+        <div className="cp-ribbon-actions" style={{ flexShrink: 0 }}>
           <span className="cp-sticker-badge" style={{ borderColor: 'var(--color-primary)' }}>
-            {completedCount}/{totalQuestions} CÂU
+            {completedCount}/{totalQuestions}
           </span>
+          {onToggleSidebar && (
+            <button
+              type="button"
+              className="cp-mini-tag-btn"
+              onClick={onToggleSidebar}
+              title="Ẩn danh sách câu hỏi"
+              style={{ flexShrink: 0 }}
+            >
+              ◀ ẨN DS
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Sidebar Subbar: Progress Meter, Penalty/Final Score & Risk Move Status */}
+      {/* Sidebar Subbar: Progress Meter, Score & Penalty */}
       <div className="cp-sidebar-header">
         <div
           className="cp-progress-meter"
@@ -94,12 +93,12 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
           <div className="cp-progress-fill" style={{ width: `${pct}%` }} />
         </div>
 
-        {/* Team Score Strip (Penalty & Score separated) */}
+        {/* Team Score Strip */}
         <div className="cp-score-summary-strip" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
           <div
             className="cp-score-cell"
             style={{
-              backgroundColor: 'rgba(217, 83, 79, 0.07)',
+              backgroundColor: 'var(--color-surface)',
               borderRight: '1px solid var(--border-color)',
               padding: '6px 10px',
             }}
@@ -113,7 +112,7 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 letterSpacing: '0.3px',
               }}
             >
-              ⚠️ TOTAL PENALTY
+              ⚠️ TỔNG ĐIỂM TRỪ
             </span>
             <span
               className="cp-score-cell-val"
@@ -131,25 +130,25 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
           <div
             className="cp-score-cell"
             style={{
-              backgroundColor: 'var(--color-primary-subtle)',
+              backgroundColor: 'var(--color-surface)',
               padding: '6px 10px',
             }}
           >
             <span
               className="cp-score-cell-label"
               style={{
-                color: 'var(--color-primary)',
+                color: 'var(--color-muted)',
                 fontSize: '9px',
                 fontWeight: 700,
                 letterSpacing: '0.3px',
               }}
             >
-              🏆 CURRENT SCORE
+              🏆 ĐIỂM HIỆN TẠI
             </span>
             <span
               className="cp-score-cell-val"
               style={{
-                color: 'var(--color-primary)',
+                color: 'var(--color-ink)',
                 fontSize: '16px',
                 fontWeight: 800,
                 lineHeight: 1.2,
@@ -160,56 +159,14 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Risk Move Global Status */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '4px 8px',
-            border: '1px solid var(--border-color)',
-            backgroundColor: 'var(--color-canvas)',
-            fontFamily: 'var(--font-ui)',
-            fontSize: '10px',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-          }}
-        >
-          <span>★ NƯỚC CỜ MẠO HIỂM:</span>
-          <span style={{ color: 'var(--color-primary)' }}>
-            {progress?.riskMoveUsedOnQuestion
-              ? `USED ON Q${progress.riskMoveUsedOnQuestion}`
-              : progress?.riskMoveUnlocked
-                ? 'READY (Q4–Q8)'
-                : 'UNLOCKS AT Q4'}
-          </span>
-        </div>
       </div>
 
-      {/* Persistent Questions List with Risk Move above Hint Box */}
+      {/* Persistent Questions List */}
       <div className="cp-question-list" role="list">
         {questions.map((q) => {
           const isSelected = q.questionNumber === selectedQuestionNumber;
           const isDone = q.status === 'DONE';
           const isFailed = q.status === 'FAILED';
-          const isHintLocked = !q.isUnlocked || isDone || isFailed;
-          const isHintOpen = openHintMenuQ === q.questionNumber && !isHintLocked;
-          const lowHintReq = q.hintRequests?.find((h) => h.hint_type === 'LOW');
-          const highHintReq = q.hintRequests?.find((h) => h.hint_type === 'HIGH');
-          const hasAnyHint = Boolean(lowHintReq || highHintReq);
-
-          const hasRiskMoveOption = q.questionNumber >= 4;
-          const riskUsedElsewhere =
-            progress?.riskMoveUsedOnQuestion !== null &&
-            progress?.riskMoveUsedOnQuestion !== undefined &&
-            progress.riskMoveUsedOnQuestion !== q.questionNumber;
-          const isRiskMoveLocked =
-            !q.isUnlocked ||
-            isFailed ||
-            isDone ||
-            riskUsedElsewhere ||
-            q.hasRiskMove;
 
           return (
             <div
@@ -243,22 +200,10 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 {/* Top Meta Row: Q# + Points Badge + Status Badge */}
                 <div className="cp-question-item-top">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className="cp-q-number-badge">CÂU {q.questionNumber}</span>
-                    {q.targetDatabase && (
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: '9px',
-                          color: 'var(--color-muted)',
-                          padding: '0 3px',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '2px',
-                        }}
-                        title={`Database: ${q.targetDatabase}`}
-                      >
-                        {q.targetDatabase.replace('parallax_', '').toUpperCase()}
-                      </span>
-                    )}
+                    <span className="cp-q-number-badge">Mảnh ghép số {q.questionNumber}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                     {q.status === 'DONE' ? (
                       <span
                         className="cp-sticker-badge cp-sticker-badge-success"
@@ -268,9 +213,8 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                           fontWeight: 800,
                           padding: '1px 6px',
                         }}
-                        title={`Awarded +${q.gainedPoints || q.basePoints} points to team score`}
                       >
-                        +{q.gainedPoints || q.basePoints} PTS{q.hasRiskMove ? ' (★ 2X)' : ''}
+                        +{q.gainedPoints || q.basePoints} PTS
                       </span>
                     ) : q.status === 'FAILED' ? (
                       <span
@@ -289,301 +233,97 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                         style={{
                           fontFamily: 'var(--font-mono)',
                           fontSize: '11px',
-                          fontWeight: 700,
-                          color: 'var(--color-primary)',
+                          fontWeight: 800,
+                          color: 'var(--color-accent-ink, var(--color-primary))',
                         }}
                       >
-                        {q.hasRiskMove ? `★ ${q.basePoints * 2} PTS (2X)` : `${q.basePoints} PTS`}
+                        {q.basePoints} PTS
                       </span>
                     )}
+                    {renderStatusBadge(q)}
                   </div>
-                  {renderStatusBadge(q)}
                 </div>
 
-                {/* Question Title + Risk Move Button (Q4+) above Hint Box */}
-                <div className="cp-q-title-row">
-                  <span className="cp-q-title-text">{q.title}</span>
+                {/* Chapter Title Row (Dedicated full width) */}
+                <div style={{ marginTop: '5px', marginBottom: '6px' }}>
                   <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      gap: '4px',
-                      flexShrink: 0,
-                    }}
+                    className="cp-q-title-text"
+                    style={{ fontSize: '13px', lineHeight: 1.35, fontWeight: 700 }}
                   >
-                    {hasRiskMoveOption && (
-                      <button
-                        type="button"
-                        className={[
-                          'cp-q-hint-trigger',
-                          q.hasRiskMove ? 'cp-q-hint-trigger-active' : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                        disabled={isRiskMoveLocked || activatingRiskQ === q.questionNumber}
-                        title={
-                          isFailed
-                            ? 'Question failed — Risk Move is locked'
-                            : isDone
-                              ? 'Question completed — Risk Move is locked'
-                              : !q.isUnlocked
-                                ? 'Unlock question first to use Risk Move'
-                                : q.hasRiskMove
-                                  ? 'Nước cờ mạo hiểm active on this question (calculated on correct answer or 6/6 failed attempts)'
-                                  : riskUsedElsewhere
-                                    ? `Nước cờ mạo hiểm already used on Question ${progress?.riskMoveUsedOnQuestion}`
-                                    : 'Activate Nước cờ mạo hiểm (2x points on correct answer, 0 pts if 6/6 attempts fail)'
-                        }
-                        onClick={(e) => handleRiskMoveClick(q.questionNumber, e)}
-                      >
-                        <span>
-                          {activatingRiskQ === q.questionNumber
-                            ? '★ ACTIVATING...'
-                            : q.hasRiskMove
-                              ? isFailed || isDone
-                                ? '🔒 2X RISK'
-                                : '★ 2X RISK'
-                              : isRiskMoveLocked
-                                ? '🔒 RISK MOVE'
-                                : '★ RISK MOVE'}
-                        </span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className={[
-                        'cp-q-hint-trigger',
-                        isHintOpen || hasAnyHint ? 'cp-q-hint-trigger-active' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                      disabled={isHintLocked}
-                      title={
-                        isFailed
-                          ? 'Question failed — Hint box is locked'
-                          : isDone
-                            ? 'Question completed — Hint box is locked'
-                            : q.isUnlocked
-                              ? 'Choose or request a real-life Hint for this question'
-                              : 'Unlock question first to request hints'
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isHintLocked) return;
-                        setOpenHintMenuQ((prev) =>
-                          prev === q.questionNumber ? null : q.questionNumber
-                        );
-                      }}
-                    >
-                      <span>{isHintLocked ? '🔒 HINT' : '💡 HINT'}</span>
-                      {hasAnyHint && (
-                        <span>({(lowHintReq ? 1 : 0) + (highHintReq ? 1 : 0)})</span>
-                      )}
-                      {!isHintLocked && <span>{isHintOpen ? '▲' : '▼'}</span>}
-                    </button>
+                    {q.title}
                   </div>
                 </div>
 
-                {/* Attempts & Solved Time Meta */}
+                {/* Sub-Investigation Indicators (Left) & Hint Button (Right) */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    gap: '6px',
                     flexWrap: 'wrap',
-                    gap: '4px',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '11px',
-                    color: 'var(--color-muted)',
+                    borderTop: '1px dotted var(--border-color)',
+                    paddingTop: '6px',
                   }}
                 >
-                  <span>
-                    Attempts: {q.attemptsUsed}/{q.maxAttempts}
-                    {q.submissionPenalty > 0 && (
-                      <span style={{ color: 'var(--badge-error-text)', marginLeft: '4px' }}>
-                        (-{q.submissionPenalty} pts)
-                      </span>
+                  {/* Indicators */}
+                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    {q.investigations && q.investigations.length > 0 ? (
+                      q.investigations.map((inv) => {
+                        const isInvDone = inv.status === 'DONE';
+                        const isInvFailed = inv.status === 'FAILED';
+                        const isInvLocked = !inv.isUnlocked;
+                        return (
+                          <span
+                            key={inv.index}
+                            style={{
+                              fontFamily: 'var(--font-mono)',
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '0px',
+                              border: isInvDone
+                                ? '1px solid var(--badge-success-border)'
+                                : isInvFailed
+                                  ? '1px solid var(--badge-error-border)'
+                                  : isInvLocked
+                                    ? '1px dashed var(--border-color)'
+                                    : '1px solid var(--color-primary)',
+                              backgroundColor: isInvDone
+                                ? 'var(--badge-success-bg)'
+                                : isInvFailed
+                                  ? 'var(--badge-error-bg)'
+                                  : isInvLocked
+                                    ? 'transparent'
+                                    : 'var(--color-primary-subtle)',
+                              color: isInvDone
+                                ? 'var(--badge-success-text)'
+                                : isInvFailed
+                                  ? 'var(--badge-error-text)'
+                                  : isInvLocked
+                                    ? 'var(--color-muted)'
+                                    : 'var(--color-accent-ink, var(--color-primary))',
+                            }}
+                            title={`${inv.title}: ${
+                              isInvDone
+                                ? 'Đã giải quyết (+50 pts)'
+                                : isInvFailed
+                                  ? 'Hết lượt thử'
+                                  : isInvLocked
+                                    ? 'Đang khóa'
+                                    : 'Đang điều tra'
+                            }`}
+                          >
+                            {inv.key}: {isInvDone ? '✓' : isInvFailed ? '✕' : isInvLocked ? '🔒' : '●'}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span style={{ fontSize: '10px', color: 'var(--color-muted)' }}>CÂU HỎI ĐƠN</span>
                     )}
-                  </span>
-                  {q.status === 'DONE' && q.completedAt && (
-                    <span style={{ color: 'var(--badge-success-text)', fontWeight: 700 }}>
-                      ⏱ Solved: {new Date(q.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-                    </span>
-                  )}
-                  {q.hintPenaltyPoints > 0 && (
-                    <span style={{ color: 'var(--badge-error-text)', fontWeight: 700 }}>
-                      Hint: -{q.hintPenaltyPoints} pts
-                    </span>
-                  )}
-                </div>
-
-                {q.revealedAnswer && (
-                  <div
-                    style={{
-                      marginTop: '4px',
-                      padding: '2px 6px',
-                      backgroundColor:
-                        q.status === 'DONE'
-                          ? 'rgba(46, 125, 50, 0.1)'
-                          : 'rgba(211, 47, 47, 0.1)',
-                      border: `1px solid ${
-                        q.status === 'DONE'
-                          ? 'var(--badge-success-border)'
-                          : 'var(--badge-error-border)'
-                      }`,
-                      borderRadius: '2px',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color:
-                        q.status === 'DONE'
-                          ? 'var(--badge-success-text)'
-                          : 'var(--badge-error-text)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={`Đáp án chính thức: ${q.revealedAnswer}`}
-                  >
-                    🎯 {q.revealedAnswer}
                   </div>
-                )}
+                </div>
               </div>
-
-              {/* Inline Hint Choice Drawer under Question Title */}
-              {isHintOpen && !isHintLocked && (
-                <div
-                  className="cp-hint-choice-drawer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-ui)',
-                      fontSize: '10px',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      color: 'var(--color-muted)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <span>REQUEST REAL-LIFE HINT (CÂU {q.questionNumber})</span>
-                    <span>BTC DELIVERY</span>
-                  </div>
-
-                  {/* Choice 1: Low-Value Hint (-10 pts) */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '6px',
-                      padding: '4px 6px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--color-surface)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-ui)',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        LOW HINT (-10 PTS)
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--color-muted)' }}>
-                        {lowHintReq
-                          ? lowHintReq.status === 'DELIVERED'
-                            ? `✓ Delivered by BTC (-${lowHintReq.deducted_points} pts)`
-                            : lowHintReq.status === 'REQUESTED'
-                              ? `⏳ -${lowHintReq.deducted_points || 10} pts deducted — Waiting for BTC delivery`
-                              : `✕ Not delivered (0 pts waived)`
-                          : 'Directional clue delivered by Proctor'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className={lowHintReq ? 'cp-btn-secondary' : 'cp-btn-primary'}
-                      style={{ padding: '4px 8px', fontSize: '10px' }}
-                      disabled={
-                        isHintLocked ||
-                        Boolean(lowHintReq && lowHintReq.status !== 'UNDELIVERED' && lowHintReq.status !== 'WAIVED') ||
-                        requestingHintKey === `${q.questionNumber}-LOW`
-                      }
-                      onClick={() => onRequestHint(q.questionNumber, 'LOW')}
-                    >
-                      {lowHintReq
-                        ? lowHintReq.status === 'DELIVERED'
-                          ? 'DELIVERED'
-                          : lowHintReq.status === 'REQUESTED'
-                            ? 'USED (-10)'
-                            : 'REQUEST'
-                        : requestingHintKey === `${q.questionNumber}-LOW`
-                          ? 'SENDING...'
-                          : 'USE HINT'}
-                    </button>
-                  </div>
-
-                  {/* Choice 2: High-Value Hint (-25 pts) */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '6px',
-                      padding: '4px 6px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--color-surface)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-ui)',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                        }}
-                      >
-                        HIGH HINT (-25 PTS)
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--color-muted)' }}>
-                        {highHintReq
-                          ? highHintReq.status === 'DELIVERED'
-                            ? `✓ Delivered by BTC (-${highHintReq.deducted_points} pts)`
-                            : highHintReq.status === 'REQUESTED'
-                              ? `⏳ -${highHintReq.deducted_points || 25} pts deducted — Waiting for BTC delivery`
-                              : `✕ Not delivered (0 pts waived)`
-                          : 'Deep analytical clue delivered by Proctor'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className={highHintReq ? 'cp-btn-secondary' : 'cp-btn-primary'}
-                      style={{ padding: '4px 8px', fontSize: '10px' }}
-                      disabled={
-                        isHintLocked ||
-                        Boolean(highHintReq && highHintReq.status !== 'UNDELIVERED' && highHintReq.status !== 'WAIVED') ||
-                        requestingHintKey === `${q.questionNumber}-HIGH`
-                      }
-                      onClick={() => onRequestHint(q.questionNumber, 'HIGH')}
-                    >
-                      {highHintReq
-                        ? highHintReq.status === 'DELIVERED'
-                          ? 'DELIVERED'
-                          : highHintReq.status === 'REQUESTED'
-                            ? 'USED (-25)'
-                            : 'REQUEST'
-                        : requestingHintKey === `${q.questionNumber}-HIGH`
-                          ? 'SENDING...'
-                          : 'USE HINT'}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
@@ -591,4 +331,3 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
     </aside>
   );
 };
-
