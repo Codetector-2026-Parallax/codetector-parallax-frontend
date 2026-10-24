@@ -266,9 +266,17 @@ export const App: React.FC = () => {
         setScoreSummary(data.scoreSummary);
         if (unlockData && unlockData.unlockedDatabases) {
           setUnlockedDatabases(unlockData.unlockedDatabases);
-          setActiveDatabase((prev) =>
-            unlockData.unlockedDatabases.includes(prev) ? prev : unlockData.activeDatabase || 'parallax_c1'
-          );
+          const nextActive = unlockData.unlockedDatabases.includes(activeDatabase)
+            ? (unlockData.activeDatabase || activeDatabase)
+            : (unlockData.activeDatabase || 'parallax_c1');
+          setActiveDatabase(nextActive);
+          try {
+            localStorage.setItem('cp_active_database', nextActive);
+            localStorage.setItem('cp_unlocked_dbs', JSON.stringify(unlockData.unlockedDatabases));
+            localStorage.setItem('cp_db_sync_timestamp', String(Date.now()));
+          } catch {
+            // ignore storage quota
+          }
         }
         if (autoSelectCurrent && data.progress?.currentQuestionNumber) {
           const targetQ = Math.min(3, Math.max(1, data.progress.currentQuestionNumber));
