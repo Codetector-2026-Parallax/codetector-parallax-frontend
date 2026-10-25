@@ -2329,10 +2329,28 @@ textarea:focus-visible,
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-width: 300px;
+  min-width: 550px;
+  max-width: 1600px;
   min-height: 0;
   background-color: var(--color-canvas);
   overflow: hidden;
+}
+
+.cp-erd-column .cp-ribbon-header {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+.cp-erd-column .cp-ribbon-header-left {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+.cp-erd-column .cp-ribbon-actions {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .cp-erd-column-fullscreen {

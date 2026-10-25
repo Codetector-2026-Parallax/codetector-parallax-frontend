@@ -289,19 +289,45 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
       aria-label="MuniDB_Hard Interactive ERD Viewer"
     >
       {/* Synchronized Primary ERD Ribbon Header (Matches Metabase Ribbon Header) */}
-      <div className="cp-ribbon-header">
+      <div
+        className="cp-ribbon-header"
+        style={{
+          flexWrap: 'nowrap',
+          whiteSpace: 'nowrap',
+          minWidth: 0,
+          gap: '8px',
+          alignItems: 'center',
+        }}
+      >
         {/* Left: ERD Title, Number of Tables & Key Legend */}
-        <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+        <div
+          className="cp-ribbon-header-left"
+          style={{
+            minWidth: 0,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            whiteSpace: 'nowrap',
+          }}
+        >
           <span className="cp-ribbon-swatch" style={{ flexShrink: 0 }} />
           <h2
             className="cp-ribbon-title"
-            style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              minWidth: 0,
+              flexShrink: 0,
+              fontSize: '15px',
+            }}
           >
             ERD SCHEMA
           </h2>
           <span
             className="cp-sticker-badge"
-            style={{ flexShrink: 0 }}
+            style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 6px', fontSize: '10px' }}
             title="Live introspected MuniDB_Hard tables"
           >
             {erd?.numberOfTables ?? 22} TABLES
@@ -316,6 +342,8 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               fontSize: '10px',
               fontWeight: 700,
               color: 'var(--color-muted)',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             <span className="cp-key-badge cp-key-pk">PK</span>
@@ -323,19 +351,34 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           </div>
 
           {copiedSqlText && (
-            <span className="cp-sticker-badge cp-sticker-badge-success">
+            <span
+              className="cp-sticker-badge cp-sticker-badge-success"
+              style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 6px', fontSize: '10px' }}
+            >
               ✓ COPIED: {copiedSqlText}
             </span>
           )}
         </div>
 
         {/* Right: Isolate Connected + Zoom Controls + Fit + Reset + Fullscreen */}
-        <div className="cp-ribbon-actions" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap' }}>
+        <div
+          className="cp-ribbon-actions"
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            flexWrap: 'nowrap',
+            whiteSpace: 'nowrap',
+            marginLeft: 'auto',
+          }}
+        >
           <button
             type="button"
             className={`cp-mini-tag-btn ${isolateConnected ? 'cp-mini-tag-btn-accent' : ''}`}
             onClick={() => setIsolateConnected((prev) => !prev)}
             title="Dim unrelated tables and highlight only direct FK neighbors"
+            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             🎯 ISOLATE
           </button>
@@ -345,6 +388,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             onClick={handleDecreaseZoom}
             title="Zoom Out"
             aria-label="Zoom out"
+            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             −
           </button>
@@ -353,8 +397,10 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               fontFamily: 'var(--font-mono)',
               fontSize: '11px',
               fontWeight: 700,
-              minWidth: '38px',
+              minWidth: '34px',
               textAlign: 'center',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             {Math.round(zoom * 100)}%
@@ -365,6 +411,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             onClick={handleIncreaseZoom}
             title="Zoom In"
             aria-label="Zoom in"
+            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             +
           </button>
@@ -373,6 +420,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             className="cp-mini-tag-btn"
             onClick={handleFitView}
             title="Fit all 22 tables into view"
+            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             ⊡ FIT
           </button>
@@ -381,13 +429,14 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             className="cp-mini-tag-btn"
             onClick={handleResetLayout}
             title="Reset dragged table positions"
+            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
             ↺ RESET
           </button>
           <button
             type="button"
             className="cp-mini-tag-btn"
-            style={{ padding: '4px 8px', fontSize: '10px' }}
+            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
             onClick={() => setIsFullscreen((prev) => !prev)}
             title="Toggle Fullscreen ERD mode"
           >
@@ -405,9 +454,12 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           padding: '6px 12px',
           backgroundColor: 'var(--color-surface)',
           borderBottom: '1px solid var(--border-color)',
+          flexWrap: 'nowrap',
+          whiteSpace: 'nowrap',
+          minWidth: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, whiteSpace: 'nowrap' }}>
           <span
             style={{
               fontFamily: 'var(--font-ui)',
@@ -415,6 +467,8 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               fontWeight: 800,
               color: 'var(--color-muted)',
               letterSpacing: '0.4px',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             ACTIVE DATABASE:
@@ -428,6 +482,8 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               backgroundColor: 'var(--color-card)',
               color: 'var(--color-primary)',
               borderColor: 'var(--color-primary)',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             🗄️ {erd?.databaseName || activeDatabase || 'parallax_c1'}
@@ -439,6 +495,8 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               fontFamily: 'var(--font-mono)',
               fontSize: '11px',
               color: 'var(--color-primary)',
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
             }}
           >
             ⏳ Đang tải schema...
@@ -477,6 +535,10 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             fontWeight: 700,
             color: 'var(--color-muted)',
             textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            maxWidth: 'calc(100% - 24px)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
           DRAG CANVAS TO PAN · DRAG TABLE HEADER TO ARRANGE · SCROLL TO ZOOM · CLICK COLUMN TO COPY SQL

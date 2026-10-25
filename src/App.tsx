@@ -36,9 +36,10 @@ const DEFAULT_SIDEBAR_WIDTH = 300;
 
 const MIN_DOSSIER_WIDTH = 460;
 const MAX_DOSSIER_WIDTH = 1400;
-const DEFAULT_DOSSIER_WIDTH = 540;
+const DEFAULT_DOSSIER_WIDTH = 520;
 
-const MIN_ERD_WIDTH = 420;
+const MIN_ERD_WIDTH = 550;
+const MAX_ERD_WIDTH = 1600;
 const SPLITTER_WIDTH = 6;
 
 export const App: React.FC = () => {
@@ -233,9 +234,11 @@ export const App: React.FC = () => {
 
     const onMove = (moveEvent: MouseEvent) => {
       const rawWidth = Math.round(moveEvent.clientX - rect.left - leftOffset);
-      const maxAllowedByContainer = rect.width - leftOffset - SPLITTER_WIDTH - MIN_ERD_WIDTH;
-      const maxAllowed = Math.max(MIN_DOSSIER_WIDTH, Math.min(MAX_DOSSIER_WIDTH, maxAllowedByContainer));
-      const clampedDossier = Math.min(maxAllowed, Math.max(MIN_DOSSIER_WIDTH, rawWidth));
+      const maxAllowedByErdMin = rect.width - leftOffset - SPLITTER_WIDTH - MIN_ERD_WIDTH;
+      const minAllowedByErdMax = rect.width - leftOffset - SPLITTER_WIDTH - MAX_ERD_WIDTH;
+      const minDossier = Math.max(MIN_DOSSIER_WIDTH, minAllowedByErdMax);
+      const maxDossier = Math.max(minDossier, Math.min(MAX_DOSSIER_WIDTH, maxAllowedByErdMin));
+      const clampedDossier = Math.min(maxDossier, Math.max(minDossier, rawWidth));
       setDossierWidth(clampedDossier);
     };
 
@@ -607,7 +610,9 @@ export const App: React.FC = () => {
               <ErdCanvas
                 style={{
                   minWidth: `${MIN_ERD_WIDTH}px`,
+                  maxWidth: `${MAX_ERD_WIDTH}px`,
                   flex: 1,
+                  flexShrink: 0,
                 }}
                 erd={erd}
                 loading={erdLoading}
