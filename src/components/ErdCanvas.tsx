@@ -295,8 +295,11 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           flexWrap: 'nowrap',
           whiteSpace: 'nowrap',
           minWidth: 0,
-          gap: '8px',
+          gap: '6px',
+          padding: '6px 10px',
           alignItems: 'center',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
         }}
       >
         {/* Left: ERD Title, Number of Tables & Key Legend */}
@@ -304,7 +307,9 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           className="cp-ribbon-header-left"
           style={{
             minWidth: 0,
-            flexShrink: 0,
+            flex: '1 1 auto',
+            flexShrink: 1,
+            overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -319,25 +324,26 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               minWidth: 0,
-              flexShrink: 0,
-              fontSize: '15px',
+              flexShrink: 1,
+              fontSize: '14px',
             }}
           >
             ERD SCHEMA
           </h2>
           <span
-            className="cp-sticker-badge"
-            style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 6px', fontSize: '10px' }}
+            className="cp-sticker-badge cp-erd-tables-badge"
+            style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 5px', fontSize: '10px' }}
             title="Live introspected MuniDB_Hard tables"
           >
             {erd?.numberOfTables ?? 22} TABLES
           </span>
 
           <div
+            className="cp-erd-key-legend"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '3px',
               fontFamily: 'var(--font-ui)',
               fontSize: '10px',
               fontWeight: 700,
@@ -353,7 +359,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           {copiedSqlText && (
             <span
               className="cp-sticker-badge cp-sticker-badge-success"
-              style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 6px', fontSize: '10px' }}
+              style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 5px', fontSize: '10px' }}
             >
               ✓ COPIED: {copiedSqlText}
             </span>
@@ -367,7 +373,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
+            gap: '3px',
             flexWrap: 'nowrap',
             whiteSpace: 'nowrap',
             marginLeft: 'auto',
@@ -436,7 +442,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           <button
             type="button"
             className="cp-mini-tag-btn"
-            style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
+            style={{ padding: '3px 7px', fontSize: '10px', fontWeight: 800, flexShrink: 0, whiteSpace: 'nowrap' }}
             onClick={() => setIsFullscreen((prev) => !prev)}
             title="Toggle Fullscreen ERD mode"
           >

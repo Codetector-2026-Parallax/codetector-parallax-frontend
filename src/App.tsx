@@ -182,6 +182,7 @@ export const App: React.FC = () => {
         }
       }
     };
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [sidebarWidth, dossierWidth, isSidebarHidden]);
