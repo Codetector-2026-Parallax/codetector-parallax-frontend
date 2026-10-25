@@ -52,10 +52,18 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   const q = detail?.question;
   const currentInvIndex = q?.currentInvestigationIndex ?? 1;
 
-  // Reset inputs when switching question numbers
+  // Active tab state: 'story' | `inv-${number}` | 'history'
+  const [activeTab, setActiveTab] = useState<string>('story');
+
+  // Reset inputs & tab when switching question numbers
   useEffect(() => {
     setAnswerInputs({});
     setInstantFeedback(null);
+    if (q?.story || q?.content) {
+      setActiveTab('story');
+    } else {
+      setActiveTab(`inv-${q?.currentInvestigationIndex ?? 1}`);
+    }
   }, [q?.questionNumber]);
 
   const handleInputChange = (invIndex: number, value: string) => {
@@ -81,6 +89,10 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
         });
         if (res.isCorrect) {
           setAnswerInputs((prev) => ({ ...prev, [invIndex]: '' }));
+          const nextInv = q.investigations?.find((item) => item.index === invIndex + 1);
+          if (nextInv) {
+            setActiveTab(`inv-${nextInv.index}`);
+          }
         }
       }
     } finally {
@@ -793,114 +805,174 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               </div>
             </div>
 
-            {/* Dossier Body */}
+            {/* Navigation Tabs Bar */}
+            <div
+              className="cp-tabs-list"
+              role="tablist"
+              style={{
+                borderBottom: '1px solid var(--border-color)',
+                marginTop: '12px',
+                paddingBottom: '0px',
+                gap: '2px',
+              }}
+            >
+              {/* Tab: Story */}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'story'}
+                className={`cp-tab-btn ${activeTab === 'story' ? 'cp-tab-btn-active' : ''}`}
+                onClick={() => setActiveTab('story')}
+              >
+                <span>📜 DẪN TRUYỆN</span>
+              </button>
+
+              {/* Dynamic Tabs: Each Investigation */}
+              {q.investigations?.map((inv) => {
+                const isCurrentActive =
+                  inv.isUnlocked &&
+                  inv.status === 'NOT_DONE' &&
+                  inv.index === currentInvIndex;
+                const isSolved = inv.status === 'DONE';
+                const isExhausted = inv.status === 'FAILED';
+                const isLocked = !inv.isUnlocked;
+
+                return (
+                  <button
+                    key={inv.index}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === `inv-${inv.index}`}
+                    className={`cp-tab-btn ${activeTab === `inv-${inv.index}` ? 'cp-tab-btn-active' : ''}`}
+                    onClick={() => setActiveTab(`inv-${inv.index}`)}
+                  >
+                    <span>🔍 MANH MỐI {inv.key}</span>
+                    {isSolved ? (
+                      <span className="cp-tab-badge cp-tab-badge-done">✓</span>
+                    ) : isCurrentActive ? (
+                      <span className="cp-tab-badge cp-tab-badge-active">●</span>
+                    ) : isExhausted ? (
+                      <span className="cp-tab-badge cp-tab-badge-failed">✕</span>
+                    ) : isLocked ? (
+                      <span className="cp-tab-badge cp-tab-badge-locked">🔒</span>
+                    ) : null}
+                  </button>
+                );
+              })}
+
+              {/* Tab: Submissions History */}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'history'}
+                className={`cp-tab-btn ${activeTab === 'history' ? 'cp-tab-btn-active' : ''}`}
+                onClick={() => setActiveTab('history')}
+              >
+                <span>📋 LỊCH SỬ NỘP</span>
+                <span style={{ fontSize: '10px', opacity: 0.85 }}>({detail.submissions?.length || 0})</span>
+              </button>
+            </div>
+
+            {/* Dossier Body - Multi-Tab View Panels */}
             <div className="cp-dossier-body">
-              {/* Dẫn truyện (Narrative Story Panel) */}
-              {(q.story || q.content) && (
-                <div
-                  className="cp-story-panel"
-                  style={{
-                    backgroundColor: 'var(--color-dossier-paper)',
-                    border: '1px solid var(--border-color)',
-                    borderLeft: '4px solid var(--color-primary)',
-                    padding: '14px 16px',
-                    borderRadius: '0px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-ui)',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      color: 'var(--color-dossier-ink)',
-                      letterSpacing: '0.4px',
-                      marginBottom: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span>📜 DẪN TRUYỆN</span>
-                  </div>
-                  <MarkdownView
-                    content={q.story || q.content}
-                    style={{
-                      fontSize: '16px',
-                      lineHeight: 1.7,
-                      color: 'var(--color-dossier-ink)',
-                    }}
-                  />
+              {/* Tab 1: Narrative Story Panel */}
+              {activeTab === 'story' && (
+                <div className="cp-tab-content-panel">
+                  {q.story || q.content ? (
+                    <div
+                      className="cp-story-panel"
+                      style={{
+                        backgroundColor: 'var(--color-dossier-paper)',
+                        border: '1px solid var(--border-color)',
+                        borderLeft: '4px solid var(--color-primary)',
+                        padding: '14px 16px',
+                        borderRadius: '0px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-ui)',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          color: 'var(--color-dossier-ink)',
+                          letterSpacing: '0.4px',
+                          marginBottom: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span>📜 BỐI CẢNH VỤ ÁN</span>
+                      </div>
+                      <MarkdownView
+                        content={q.story || q.content}
+                        style={{
+                          fontSize: '16px',
+                          lineHeight: 1.7,
+                          color: 'var(--color-dossier-ink)',
+                        }}
+                      />
+
+                      {/* Fast-track button to active investigation */}
+                      {q.investigations && q.investigations.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: '16px',
+                            paddingTop: '12px',
+                            borderTop: '1px dashed var(--border-color)',
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            className="cp-btn cp-btn-primary"
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '11px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}
+                            onClick={() => setActiveTab(`inv-${currentInvIndex}`)}
+                          >
+                            <span>
+                              BẮT ĐẦU ĐIỀU TRA MANH MỐI{' '}
+                              {q.investigations.find((i) => i.index === currentInvIndex)?.key ?? 'A'} ➔
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: '24px',
+                        textAlign: 'center',
+                        color: 'var(--color-muted)',
+                        fontSize: '13px',
+                      }}
+                    >
+                      Không có nội dung dẫn truyện cho mảnh ghép này.
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Clues Summary Box if Present */}
-              {q.caseDossier?.clues && q.caseDossier.clues.length > 0 && (
-                <div
-                  style={{
-                    backgroundColor: 'var(--color-canvas)',
-                    border: '1px solid var(--border-color)',
-                    borderLeft: '3px solid var(--color-primary)',
-                    padding: '10px 12px',
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-ui)',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      color: 'var(--color-accent-ink, var(--color-primary))',
-                      marginBottom: '6px',
-                      letterSpacing: '0.3px',
-                    }}
-                  >
-                    🔍 LƯU Ý &amp; MANH MỐI TỔNG QUAN
+              {/* Tab 2..N: Selected Investigation Card */}
+              {q.investigations?.map((inv) => {
+                if (activeTab !== `inv-${inv.index}`) return null;
+                return (
+                  <div key={inv.index} className="cp-tab-content-panel">
+                    {renderInvestigationCard(inv)}
                   </div>
-                  <ul
-                    style={{
-                      margin: 0,
-                      paddingLeft: '18px',
-                      fontSize: '15px',
-                      lineHeight: 1.65,
-                    }}
-                  >
-                    {q.caseDossier.clues.map((clue, idx) => (
-                      <li key={idx} style={{ marginBottom: '4px' }}>
-                        <MarkdownView content={clue} inline />
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                );
+              })}
 
-              {/* Sequential Investigations List */}
-              <div style={{ marginTop: '8px' }}>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-ui)',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    color: 'var(--color-accent-ink, var(--color-primary))',
-                    letterSpacing: '0.4px',
-                    marginBottom: '10px',
-                  }}
-                >
-                  HỆ THỐNG MANH MỐI ĐIỀU TRA TUẦN TỰ
-                </div>
-                {q.investigations && q.investigations.length > 0 ? (
-                  q.investigations.map((inv) => renderInvestigationCard(inv))
-                ) : (
-                  <div style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
-                    Không tìm thấy dữ liệu manh mối.
-                  </div>
-                )}
-              </div>
-
-              {/* Submission Attempt History for this Question */}
-              {detail.submissions && detail.submissions.length > 0 && (
-                <div style={{ marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              {/* Tab: Submission Attempt History */}
+              {activeTab === 'history' && (
+                <div className="cp-tab-content-panel">
                   <div
                     style={{
                       fontFamily: 'var(--font-ui)',
@@ -913,45 +985,58 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                   >
                     LỊCH SỬ NỘP ĐÁP ÁN (MẢNH GHÉP SỐ {q.questionNumber})
                   </div>
-                  <table className="cp-data-table">
-                    <thead>
-                      <tr>
-                        <th style={{ width: '40px' }}>#</th>
-                        <th style={{ width: '90px' }}>Manh mối</th>
-                        <th>Đáp án đã nộp</th>
-                        <th style={{ width: '100px' }}>Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.submissions.map((sub) => (
-                        <tr key={sub.id}>
-                          <td style={{ fontFamily: 'var(--font-mono)' }}>
-                            #{sub.attempt_number}
-                          </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                            {sub.investigation_index === 1 ? 'Manh mối A' : sub.investigation_index === 2 ? 'Manh mối B' : `Mục #${sub.investigation_index}`}
-                          </td>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
-                            {sub.answer_content}
-                          </td>
-                          <td>
-                            <span
-                              className={[
-                                'cp-sticker-badge',
-                                sub.status === 'ACCEPTED'
-                                  ? 'cp-sticker-badge-success'
-                                  : sub.status === 'REJECTED'
-                                    ? 'cp-sticker-badge-error'
-                                    : 'cp-sticker-badge-running',
-                              ].join(' ')}
-                            >
-                              {sub.status}
-                            </span>
-                          </td>
+                  {detail.submissions && detail.submissions.length > 0 ? (
+                    <table className="cp-data-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '40px' }}>#</th>
+                          <th style={{ width: '90px' }}>Manh mối</th>
+                          <th>Đáp án đã nộp</th>
+                          <th style={{ width: '100px' }}>Trạng thái</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {detail.submissions.map((sub) => (
+                          <tr key={sub.id}>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>
+                              #{sub.attempt_number}
+                            </td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                              {sub.investigation_index === 1 ? 'Manh mối A' : sub.investigation_index === 2 ? 'Manh mối B' : `Mục #${sub.investigation_index}`}
+                            </td>
+                            <td style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>
+                              {sub.answer_content}
+                            </td>
+                            <td>
+                              <span
+                                className={[
+                                  'cp-sticker-badge',
+                                  sub.status === 'ACCEPTED'
+                                    ? 'cp-sticker-badge-success'
+                                    : sub.status === 'REJECTED'
+                                      ? 'cp-sticker-badge-error'
+                                      : 'cp-sticker-badge-running',
+                                ].join(' ')}
+                              >
+                                {sub.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div
+                      style={{
+                        padding: '24px',
+                        textAlign: 'center',
+                        color: 'var(--color-muted)',
+                        fontSize: '13px',
+                      }}
+                    >
+                      Chưa có lượt nộp đáp án nào cho mảnh ghép này.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
