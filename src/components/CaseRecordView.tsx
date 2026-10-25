@@ -52,17 +52,21 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   const q = detail?.question;
   const currentInvIndex = q?.currentInvestigationIndex ?? 1;
 
-  // Active tab state: 'story' | `inv-${number}` | 'history'
-  const [activeTab, setActiveTab] = useState<string>('story');
+  // Active main tab state: 'story' | 'investigations' | 'history'
+  const [activeMainTab, setActiveMainTab] = useState<'story' | 'investigations' | 'history'>('story');
+  // Active subtab inside investigations: index of investigation (1, 2, ...)
+  const [activeInvIndex, setActiveInvIndex] = useState<number>(1);
 
   // Reset inputs & tab when switching question numbers
   useEffect(() => {
     setAnswerInputs({});
     setInstantFeedback(null);
+    const initialInv = q?.currentInvestigationIndex ?? 1;
+    setActiveInvIndex(initialInv);
     if (q?.story || q?.content) {
-      setActiveTab('story');
+      setActiveMainTab('story');
     } else {
-      setActiveTab(`inv-${q?.currentInvestigationIndex ?? 1}`);
+      setActiveMainTab('investigations');
     }
   }, [q?.questionNumber]);
 
@@ -91,7 +95,8 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
           setAnswerInputs((prev) => ({ ...prev, [invIndex]: '' }));
           const nextInv = q.investigations?.find((item) => item.index === invIndex + 1);
           if (nextInv) {
-            setActiveTab(`inv-${nextInv.index}`);
+            setActiveInvIndex(nextInv.index);
+            setActiveMainTab('investigations');
           }
         }
       }
@@ -820,53 +825,48 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               <button
                 type="button"
                 role="tab"
-                aria-selected={activeTab === 'story'}
-                className={`cp-tab-btn ${activeTab === 'story' ? 'cp-tab-btn-active' : ''}`}
-                onClick={() => setActiveTab('story')}
+                aria-selected={activeMainTab === 'story'}
+                className={`cp-tab-btn ${activeMainTab === 'story' ? 'cp-tab-btn-active' : ''}`}
+                onClick={() => setActiveMainTab('story')}
               >
                 <span>📜 DẪN TRUYỆN</span>
               </button>
 
-              {/* Dynamic Tabs: Each Investigation */}
-              {q.investigations?.map((inv) => {
-                const isCurrentActive =
-                  inv.isUnlocked &&
-                  inv.status === 'NOT_DONE' &&
-                  inv.index === currentInvIndex;
-                const isSolved = inv.status === 'DONE';
-                const isExhausted = inv.status === 'FAILED';
-                const isLocked = !inv.isUnlocked;
-
-                return (
-                  <button
-                    key={inv.index}
-                    type="button"
-                    role="tab"
-                    aria-selected={activeTab === `inv-${inv.index}`}
-                    className={`cp-tab-btn ${activeTab === `inv-${inv.index}` ? 'cp-tab-btn-active' : ''}`}
-                    onClick={() => setActiveTab(`inv-${inv.index}`)}
-                  >
-                    <span>🔍 MANH MỐI {inv.key}</span>
-                    {isSolved ? (
-                      <span className="cp-tab-badge cp-tab-badge-done">✓</span>
-                    ) : isCurrentActive ? (
-                      <span className="cp-tab-badge cp-tab-badge-active">●</span>
-                    ) : isExhausted ? (
-                      <span className="cp-tab-badge cp-tab-badge-failed">✕</span>
-                    ) : isLocked ? (
-                      <span className="cp-tab-badge cp-tab-badge-locked">🔒</span>
-                    ) : null}
-                  </button>
-                );
-              })}
+              {/* Big Tab: All Investigations */}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeMainTab === 'investigations'}
+                className={`cp-tab-btn ${activeMainTab === 'investigations' ? 'cp-tab-btn-active' : ''}`}
+                onClick={() => setActiveMainTab('investigations')}
+              >
+                <span>🔍 ĐIỀU TRA</span>
+                <span
+                  className="cp-tab-badge"
+                  style={{
+                    backgroundColor:
+                      q.investigations && q.investigations.every((i) => i.status === 'DONE')
+                        ? 'var(--badge-success-bg)'
+                        : 'var(--surface-steel-light)',
+                    color:
+                      q.investigations && q.investigations.every((i) => i.status === 'DONE')
+                        ? 'var(--badge-success-text)'
+                        : 'inherit',
+                    fontSize: '10px',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  {q.investigations?.filter((i) => i.status === 'DONE').length ?? 0}/{q.investigations?.length ?? 2}
+                </span>
+              </button>
 
               {/* Tab: Submissions History */}
               <button
                 type="button"
                 role="tab"
-                aria-selected={activeTab === 'history'}
-                className={`cp-tab-btn ${activeTab === 'history' ? 'cp-tab-btn-active' : ''}`}
-                onClick={() => setActiveTab('history')}
+                aria-selected={activeMainTab === 'history'}
+                className={`cp-tab-btn ${activeMainTab === 'history' ? 'cp-tab-btn-active' : ''}`}
+                onClick={() => setActiveMainTab('history')}
               >
                 <span>📋 LỊCH SỬ NỘP</span>
                 <span style={{ fontSize: '10px', opacity: 0.85 }}>({detail.submissions?.length || 0})</span>
@@ -876,7 +876,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
             {/* Dossier Body - Multi-Tab View Panels */}
             <div className="cp-dossier-body">
               {/* Tab 1: Narrative Story Panel */}
-              {activeTab === 'story' && (
+              {activeMainTab === 'story' && (
                 <div className="cp-tab-content-panel">
                   {q.story || q.content ? (
                     <div
@@ -935,7 +935,10 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                               alignItems: 'center',
                               gap: '6px',
                             }}
-                            onClick={() => setActiveTab(`inv-${currentInvIndex}`)}
+                            onClick={() => {
+                              setActiveMainTab('investigations');
+                              setActiveInvIndex(currentInvIndex);
+                            }}
                           >
                             <span>
                               BẮT ĐẦU ĐIỀU TRA MANH MỐI{' '}
@@ -960,18 +963,96 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 </div>
               )}
 
-              {/* Tab 2..N: Selected Investigation Card */}
-              {q.investigations?.map((inv) => {
-                if (activeTab !== `inv-${inv.index}`) return null;
-                return (
-                  <div key={inv.index} className="cp-tab-content-panel">
-                    {renderInvestigationCard(inv)}
-                  </div>
-                );
-              })}
+              {/* Tab 2: Big Investigations Tab with Subtabs */}
+              {activeMainTab === 'investigations' && (
+                <div className="cp-tab-content-panel">
+                  {q.investigations && q.investigations.length > 0 ? (
+                    <>
+                      {/* Subtab Navigation Bar for Each Investigation */}
+                      <div
+                        className="cp-subtabs-list"
+                        role="tablist"
+                        style={{
+                          borderBottom: '1px solid var(--border-color)',
+                          paddingBottom: '8px',
+                          marginBottom: '14px',
+                          gap: '6px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-ui)',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            textTransform: 'uppercase',
+                            color: 'var(--color-muted)',
+                            marginRight: '2px',
+                            userSelect: 'none',
+                          }}
+                        >
+                          MỤC TIÊU:
+                        </span>
+                        {q.investigations.map((inv) => {
+                          const isCurrentActive =
+                            inv.isUnlocked &&
+                            inv.status === 'NOT_DONE' &&
+                            inv.index === currentInvIndex;
+                          const isSolved = inv.status === 'DONE';
+                          const isExhausted = inv.status === 'FAILED';
+                          const isLocked = !inv.isUnlocked;
+                          const isSelected = activeInvIndex === inv.index;
 
-              {/* Tab: Submission Attempt History */}
-              {activeTab === 'history' && (
+                          return (
+                            <button
+                              key={inv.index}
+                              type="button"
+                              role="tab"
+                              aria-selected={isSelected}
+                              className={`cp-subtab-btn ${isSelected ? 'cp-subtab-btn-active' : ''}`}
+                              onClick={() => setActiveInvIndex(inv.index)}
+                            >
+                              <span>MANH MỐI {inv.key}</span>
+                              {isSolved ? (
+                                <span className="cp-tab-badge cp-tab-badge-done">✓</span>
+                              ) : isCurrentActive ? (
+                                <span className="cp-tab-badge cp-tab-badge-active">●</span>
+                              ) : isExhausted ? (
+                                <span className="cp-tab-badge cp-tab-badge-failed">✕</span>
+                              ) : isLocked ? (
+                                <span className="cp-tab-badge cp-tab-badge-locked">🔒</span>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Active Investigation Detail Card */}
+                      <div style={{ marginTop: '4px' }}>
+                        {(() => {
+                          const selectedInv =
+                            q.investigations.find((i) => i.index === activeInvIndex) ||
+                            q.investigations[0];
+                          return renderInvestigationCard(selectedInv);
+                        })()}
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        padding: '24px',
+                        textAlign: 'center',
+                        color: 'var(--color-muted)',
+                        fontSize: '13px',
+                      }}
+                    >
+                      Không tìm thấy dữ liệu manh mối điều tra.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Submission Attempt History */}
+              {activeMainTab === 'history' && (
                 <div className="cp-tab-content-panel">
                   <div
                     style={{

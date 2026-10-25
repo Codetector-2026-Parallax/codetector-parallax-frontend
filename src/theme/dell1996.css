@@ -1413,6 +1413,50 @@ textarea:focus-visible,
   font-size: 9px;
 }
 
+.cp-subtabs-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+}
+
+.cp-subtab-btn {
+  background-color: var(--surface-steel-light);
+  color: var(--color-muted);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+  transition: all 0.1s ease;
+  border-radius: 0px;
+}
+
+.cp-subtab-btn:hover {
+  color: var(--color-ink);
+  background-color: var(--color-surface);
+  border-color: var(--border-strong);
+}
+
+.cp-subtab-btn-active {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 -2px 0 var(--color-primary);
+  font-weight: 800;
+}
+
 .cp-tab-content-panel {
   animation: cp-tab-fade-in 0.12s ease-in-out;
 }
