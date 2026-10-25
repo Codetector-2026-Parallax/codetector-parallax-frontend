@@ -22,6 +22,8 @@ interface CaseRecordViewProps {
   onNavigateQuestion: (questionNumber: number) => void;
   onRequestHint?: (questionNumber: number, hintType: 'LOW' | 'HIGH') => Promise<void>;
   requestingHintKey?: string | null;
+  isSidebarHidden?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
@@ -33,6 +35,8 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   onSubmitAnswer,
   onRequestHint,
   requestingHintKey,
+  isSidebarHidden,
+  onToggleSidebar,
 }) => {
   const [answerInputs, setAnswerInputs] = useState<Record<number, string>>({});
   const [submittingInv, setSubmittingInv] = useState<number | null>(null);
@@ -127,11 +131,12 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexWrap: 'wrap',
+            flexWrap: 'nowrap',
             gap: '8px',
             marginBottom: '12px',
             borderBottom: '1px solid var(--border-color)',
             paddingBottom: '8px',
+            minWidth: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -476,7 +481,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', alignItems: 'center' }}>
                   <input
                     id={`cp-answer-inv-${inv.index}`}
                     type="text"
@@ -604,7 +609,20 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
     >
       {/* Synchronized Ribbon Header */}
       <div className="cp-ribbon-header">
-        <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+        <div className="cp-ribbon-header-left" style={{ minWidth: 0, flexShrink: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+          {isSidebarHidden && onToggleSidebar && (
+            <button
+              type="button"
+              className="cp-mini-tag-btn cp-mini-tag-btn-accent"
+              onClick={onToggleSidebar}
+              title="Hiện danh sách mảnh ghép (Show Pieces List)"
+              aria-label="Show Pieces List"
+              style={{ marginRight: '8px', flexShrink: 0, padding: '2px 7px', fontSize: '11px', fontWeight: 800 }}
+              data-testid="unhide-pieces-list-btn"
+            >
+              ⮞ HIỆN DS
+            </button>
+          )}
           <span className="cp-ribbon-swatch" style={{ flexShrink: 0 }} />
           <h2
             className="cp-ribbon-title"

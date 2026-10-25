@@ -479,6 +479,21 @@ textarea:focus-visible,
   overflow: hidden;
 }
 
+.cp-banner-score-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+@media (max-width: 1120px) {
+  .cp-banner-score-badges {
+    display: none !important;
+  }
+}
+
 .cp-event-title {
   font-family: var(--font-display);
   font-size: 18px;
@@ -1837,8 +1852,8 @@ textarea:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  flex-wrap: wrap;
-  row-gap: 4px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .cp-q-number-badge {
@@ -2568,24 +2583,34 @@ textarea:focus-visible,
     padding: 4px;
   }
   .cp-top-banner {
-    flex-wrap: wrap;
-    gap: 6px;
-    padding: 6px 8px;
-    min-height: auto;
+    flex-wrap: nowrap !important;
+    gap: 8px;
+    padding: 6px 10px;
+    min-height: 48px;
   }
-  .cp-banner-left,
-  .cp-banner-right {
+  .cp-banner-left {
     min-width: 0;
     flex-shrink: 0;
   }
   .cp-banner-center {
-    order: 3;
-    width: 100%;
-    margin-top: 4px;
-    flex: 1 1 100%;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .cp-banner-score-badges {
+    display: none !important;
+  }
+  .cp-banner-right {
+    min-width: 0;
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
   }
   .cp-user-workstation {
@@ -2647,6 +2672,27 @@ textarea:focus-visible,
     height: 180px;
     border-right: none;
     border-bottom: 1px solid var(--border-strong);
+  }
+}
+
+@media (max-width: 768px) {
+  .cp-banner-left .cp-brand-tag {
+    display: none;
+  }
+  .cp-event-title {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 520px) {
+  .cp-theme-toggle span:last-child {
+    display: none;
+  }
+  .cp-profile-trigger span:nth-child(2) {
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

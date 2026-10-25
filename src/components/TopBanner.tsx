@@ -74,8 +74,8 @@ export const TopBanner: React.FC<TopBannerProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              flexShrink: 1,
-              flexWrap: 'wrap',
+              flexShrink: 0,
+              flexWrap: 'nowrap',
               minWidth: 0,
             }}
           >
@@ -86,7 +86,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
               className="cp-sticker-badge cp-sticker-badge-error"
               title="Total point deductions from retries, hints, and penalties"
             >
-              <span>⚠️ -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
+              <span>⚠️ PENALTY: -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
             </div>
             <div
               className="cp-sticker-badge cp-sticker-badge-score"

@@ -330,7 +330,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
         </div>
 
         {/* Right: Isolate Connected + Zoom Controls + Fit + Reset + Fullscreen */}
-        <div className="cp-ribbon-actions">
+        <div className="cp-ribbon-actions" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap' }}>
           <button
             type="button"
             className={`cp-mini-tag-btn ${isolateConnected ? 'cp-mini-tag-btn-accent' : ''}`}

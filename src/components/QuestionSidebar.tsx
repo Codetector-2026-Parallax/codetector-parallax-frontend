@@ -13,6 +13,7 @@ interface QuestionSidebarProps {
   style?: React.CSSProperties;
   onSelectQuestion: (questionNumber: number) => void;
   onActivateRiskMove: (questionNumber: number) => Promise<void>;
+  onToggleHide?: () => void;
 }
 
 export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
@@ -22,6 +23,7 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
   selectedQuestionNumber,
   style,
   onSelectQuestion,
+  onToggleHide,
 }) => {
   const completedCount = progress?.completedCount ?? 0;
   const totalQuestions = progress?.totalQuestions ?? 3;
@@ -61,10 +63,22 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
             PIECES LIST
           </h2>
         </div>
-        <div className="cp-ribbon-actions" style={{ flexShrink: 0 }}>
+        <div className="cp-ribbon-actions" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span className="cp-sticker-badge" style={{ borderColor: 'var(--color-primary)' }}>
             {completedCount}/{totalQuestions}
           </span>
+          {onToggleHide && (
+            <button
+              type="button"
+              className="cp-mini-tag-btn"
+              onClick={onToggleHide}
+              title="Ẩn danh sách mảnh ghép (Hide Pieces List)"
+              aria-label="Hide Pieces List"
+              style={{ padding: '2px 6px', fontSize: '10px' }}
+            >
+              ⮜ ẨN DS
+            </button>
+          )}
         </div>
       </div>
 

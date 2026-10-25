@@ -30,21 +30,42 @@ import type {
 } from './types';
 
 // Bounded pane dimension limits to guarantee components never override, eclipse, or squash each other
-const MIN_SIDEBAR_WIDTH = 220;
-const MAX_SIDEBAR_WIDTH = 420;
-const DEFAULT_SIDEBAR_WIDTH = 280;
+const MIN_SIDEBAR_WIDTH = 290;
+const MAX_SIDEBAR_WIDTH = 460;
+const DEFAULT_SIDEBAR_WIDTH = 300;
 
-const MIN_DOSSIER_WIDTH = 320;
+const MIN_DOSSIER_WIDTH = 460;
 const MAX_DOSSIER_WIDTH = 1400;
-const DEFAULT_DOSSIER_WIDTH = 500;
+const DEFAULT_DOSSIER_WIDTH = 540;
 
-const MIN_ERD_WIDTH = 300;
+const MIN_ERD_WIDTH = 420;
 const SPLITTER_WIDTH = 6;
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
+
+  // Hide / Unhide Pieces List state (persisted to localStorage)
+  const [isSidebarHidden, setIsSidebarHidden] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cp_sidebar_hidden') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarHidden((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cp_sidebar_hidden', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
 
   // Resizable Border Widths (Sidebar <-> Dossiers <-> ERD)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
@@ -136,8 +157,8 @@ export const App: React.FC = () => {
       if (!container) return;
       const totalW = container.clientWidth;
       if (totalW > 0) {
-        const curSidebar = sidebarWidth;
-        const splitters = SPLITTER_WIDTH * 2;
+        const curSidebar = isSidebarHidden ? 0 : sidebarWidth;
+        const splitters = isSidebarHidden ? SPLITTER_WIDTH : SPLITTER_WIDTH * 2;
 
         // Ensure dossier does not push ERD below MIN_ERD_WIDTH
         const maxDossierAllowed = Math.max(
@@ -149,18 +170,20 @@ export const App: React.FC = () => {
         }
 
         // Ensure sidebar does not push dossier + ERD below their minimums
-        const maxSidebarAllowed = Math.max(
-          MIN_SIDEBAR_WIDTH,
-          Math.min(MAX_SIDEBAR_WIDTH, totalW - MIN_DOSSIER_WIDTH - MIN_ERD_WIDTH - splitters)
-        );
-        if (sidebarWidth > maxSidebarAllowed) {
-          setSidebarWidth(maxSidebarAllowed);
+        if (!isSidebarHidden) {
+          const maxSidebarAllowed = Math.max(
+            MIN_SIDEBAR_WIDTH,
+            Math.min(MAX_SIDEBAR_WIDTH, totalW - MIN_DOSSIER_WIDTH - MIN_ERD_WIDTH - splitters)
+          );
+          if (sidebarWidth > maxSidebarAllowed) {
+            setSidebarWidth(maxSidebarAllowed);
+          }
         }
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [sidebarWidth, dossierWidth]);
+  }, [sidebarWidth, dossierWidth, isSidebarHidden]);
 
   // Drag border between Questions List and Dossiers
   const handleSidebarBorderMouseDown = (e: React.MouseEvent) => {
@@ -204,7 +227,8 @@ export const App: React.FC = () => {
     const container = workstationRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
-    const leftOffset = sidebarWidth + SPLITTER_WIDTH;
+    const effectiveSidebar = isSidebarHidden ? 0 : sidebarWidth;
+    const leftOffset = effectiveSidebar + (isSidebarHidden ? 0 : SPLITTER_WIDTH);
     setActiveResizer('dossier');
 
     const onMove = (moveEvent: MouseEvent) => {
@@ -501,37 +525,42 @@ export const App: React.FC = () => {
             ref={workstationRef}
             className={`cp-user-workstation ${activeResizer ? 'cp-is-resizing-col' : ''}`}
           >
-            {/* 1. Questions List Sidebar */}
-            <ErrorBoundary panelName="Question Sidebar">
-              <QuestionSidebar
-                style={{
-                  width: `${sidebarWidth}px`,
-                  minWidth: `${MIN_SIDEBAR_WIDTH}px`,
-                  maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
-                  flexShrink: 0,
-                }}
-                questions={questions}
-                progress={progress}
-                scoreSummary={scoreSummary}
-                selectedQuestionNumber={selectedQ}
-                onSelectQuestion={(qNum) => setSelectedQ(qNum)}
-                onActivateRiskMove={handleActivateRiskMove}
-              />
-            </ErrorBoundary>
+            {/* 1. Questions List Sidebar (Hideable) */}
+            {!isSidebarHidden && (
+              <>
+                <ErrorBoundary panelName="Question Sidebar">
+                  <QuestionSidebar
+                    style={{
+                      width: `${sidebarWidth}px`,
+                      minWidth: `${MIN_SIDEBAR_WIDTH}px`,
+                      maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
+                      flexShrink: 0,
+                    }}
+                    questions={questions}
+                    progress={progress}
+                    scoreSummary={scoreSummary}
+                    selectedQuestionNumber={selectedQ}
+                    onSelectQuestion={(qNum) => setSelectedQ(qNum)}
+                    onActivateRiskMove={handleActivateRiskMove}
+                    onToggleHide={toggleSidebar}
+                  />
+                </ErrorBoundary>
 
-            {/* Vertical Border Resizer: Questions List <-> Dossier */}
-            <div
-              className={`cp-v-splitter ${
-                activeResizer === 'sidebar' ? 'cp-v-splitter-active' : ''
-              }`}
-              onMouseDown={handleSidebarBorderMouseDown}
-              onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
-              role="separator"
-              aria-orientation="vertical"
-              title="Drag border to resize Questions List & Dossier (Double-click to reset)"
-            >
-              <div className="cp-v-splitter-grip" />
-            </div>
+                {/* Vertical Border Resizer: Questions List <-> Dossier */}
+                <div
+                  className={`cp-v-splitter ${
+                    activeResizer === 'sidebar' ? 'cp-v-splitter-active' : ''
+                  }`}
+                  onMouseDown={handleSidebarBorderMouseDown}
+                  onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+                  role="separator"
+                  aria-orientation="vertical"
+                  title="Drag border to resize Questions List & Dossier (Double-click to reset)"
+                >
+                  <div className="cp-v-splitter-grip" />
+                </div>
+              </>
+            )}
 
             {/* 2. Combined Question Case Dossier & Submit Column */}
             <ErrorBoundary panelName="Case Record Dossier">
@@ -554,6 +583,8 @@ export const App: React.FC = () => {
                 requestingHintKey={requestingHintKey}
                 onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
                 onNavigateQuestion={(qNum) => setSelectedQ(qNum)}
+                isSidebarHidden={isSidebarHidden}
+                onToggleSidebar={toggleSidebar}
               />
             </ErrorBoundary>
 
