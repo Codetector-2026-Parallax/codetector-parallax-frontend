@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getSqlEditorUrl, getStoredMetabaseSession } from '../api';
 import type { ThemeMode } from '../theme/theme';
 import type { AuthUser, TeamProgressInfo, TeamScoreSummary } from '../types';
 
@@ -6,6 +7,8 @@ interface TopBannerProps {
   user: AuthUser;
   progress?: TeamProgressInfo | null;
   scoreSummary?: TeamScoreSummary | null;
+  activeContestId?: string;
+  onOpenContestSelect?: () => void;
   onLogout: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
@@ -15,6 +18,8 @@ export const TopBanner: React.FC<TopBannerProps> = ({
   user,
   progress,
   scoreSummary,
+  activeContestId,
+  onOpenContestSelect,
   onLogout,
   theme,
   onToggleTheme,
@@ -29,6 +34,13 @@ export const TopBanner: React.FC<TopBannerProps> = ({
     .join('')
     .slice(0, 2)
     .toUpperCase();
+
+  const handleOpenSqlEditor = () => {
+    const baseUrl = getSqlEditorUrl();
+    const session = getStoredMetabaseSession();
+    const targetUrl = session ? `${baseUrl}?session=${encodeURIComponent(session)}` : baseUrl;
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -100,6 +112,40 @@ export const TopBanner: React.FC<TopBannerProps> = ({
 
       {/* Right: Theme Toggle + User Profile Icon -> AUTHENTICATED TEAM, LOGOUT */}
       <div className="cp-banner-right" ref={menuRef} style={{ minWidth: 0, flexShrink: 0 }}>
+        {onOpenContestSelect && (
+          <button
+            type="button"
+            className="cp-theme-toggle"
+            onClick={onOpenContestSelect}
+            title="Bấm để chuyển đổi đấu trường Huấn Luyện hoặc Chính Thức"
+            style={{
+              borderColor: activeContestId === 'training' ? 'var(--glass)' : 'var(--color-primary)',
+              color: activeContestId === 'training' ? 'var(--glass)' : 'var(--color-primary-text)',
+              backgroundColor: activeContestId === 'training' ? 'var(--tint-slate)' : 'var(--tint-brass)',
+            }}
+          >
+            <span>{activeContestId === 'training' ? '🛠️' : '🏛️'}</span>
+            <span>{activeContestId === 'training' ? 'HUẤN LUYỆN' : 'CHÍNH THỨC'}</span>
+            <span style={{ fontSize: '9px', opacity: 0.8 }}>[ĐỔI]</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="cp-theme-toggle"
+          onClick={handleOpenSqlEditor}
+          title="Mở SQL Editor (Metabase) — Phiên đăng nhập được đồng bộ tự động"
+          data-testid="open-sql-editor-button"
+          style={{
+            borderColor: 'var(--border-mid)',
+            backgroundColor: 'var(--tint-paper)',
+          }}
+        >
+          <span>🗄️</span>
+          <span>SQL EDITOR</span>
+          <span style={{ fontSize: '9px', opacity: 0.8 }}>↗</span>
+        </button>
+
         <button
           type="button"
           className="cp-theme-toggle"
@@ -168,6 +214,32 @@ export const TopBanner: React.FC<TopBannerProps> = ({
                   </div>
                 </>
               )}
+
+              {onOpenContestSelect && (
+                <button
+                  type="button"
+                  className="cp-btn-secondary"
+                  style={{ width: '100%', marginBottom: '6px' }}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onOpenContestSelect();
+                  }}
+                >
+                  ⇆ ĐỔI ĐẤU TRƯỜNG
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="cp-btn-secondary"
+                style={{ width: '100%', marginBottom: '6px' }}
+                onClick={() => {
+                  setDropdownOpen(false);
+                  handleOpenSqlEditor();
+                }}
+              >
+                🗄️ MỞ SQL EDITOR ↗
+              </button>
 
               <button
                 type="button"

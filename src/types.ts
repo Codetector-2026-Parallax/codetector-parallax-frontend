@@ -310,3 +310,15 @@ export interface AdminQuestionConfig {
   base_points: number;
   accepted_answers: string[];
 }
+
+export interface ContestInfo {
+  id: string; // 'training' | 'official'
+  name: string;
+  title: string;
+  description: string;
+  target_database: string;
+  is_active: boolean;
+  questionCount?: number;
+  activeTeamCount?: number;
+  created_at?: string;
+}

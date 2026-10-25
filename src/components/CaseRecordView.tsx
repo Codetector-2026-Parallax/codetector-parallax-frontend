@@ -433,24 +433,8 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     color: 'var(--badge-error-text)',
                   }}
                 >
-                  ✕ ĐÃ HẾT 6 LƯỢT THỬ — ĐÁP ÁN ĐƯỢC TIẾT LỘ
+                  ✕ ĐÃ HẾT 6 LƯỢT THỬ — KHÔNG HOÀN THÀNH MANH MỐI NÀY (0 ĐIỂM)
                 </div>
-                {inv.revealedAnswer && (
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '14px',
-                      fontWeight: 700,
-                      color: 'var(--color-ink)',
-                      backgroundColor: 'var(--color-canvas)',
-                      padding: '6px 10px',
-                      border: '1px solid var(--border-color)',
-                      userSelect: 'all',
-                    }}
-                  >
-                    {inv.revealedAnswer}
-                  </div>
-                )}
               </div>
             ) : isCurrentActive ? (
               /* Active Submission Form for Current Investigation */

@@ -1,19 +1,26 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AUTH_SYNC_EVENT_KEY,
   activateQuestionRiskMove,
   fetchCurrentUser,
   fetchErdMetadata,
   fetchQuestionDetail,
   fetchQuestionsList,
   fetchUnlockedDatabases,
+  getActiveContestId,
   getApiUrl,
+  getStoredMetabaseSession,
   getStoredToken,
   logoutSession,
   requestQuestionHint,
+  setActiveContestId,
+  setStoredMetabaseSession,
   submitQuestionAnswer,
+  syncSessionFromMetabase,
 } from './api';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AuthLogin } from './components/AuthLogin';
+import { ContestSelectPage } from './components/ContestSelectPage';
 import { CaseRecordView } from './components/CaseRecordView';
 import { ErdCanvas } from './components/ErdCanvas';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -46,6 +53,15 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
   const [bootstrapping, setBootstrapping] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [activeContestId, setActiveContestIdState] = useState<string>(() => getActiveContestId());
+  const [showContestSelectPage, setShowContestSelectPage] = useState<boolean>(false);
+  const [adminContestId, setAdminContestId] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('cp_admin_contest');
+    } catch {
+      return null;
+    }
+  });
 
   // Hide / Unhide Pieces List state (persisted to localStorage)
   const [isSidebarHidden, setIsSidebarHidden] = useState<boolean>(() => {
@@ -253,17 +269,87 @@ export const App: React.FC = () => {
     window.addEventListener('mouseup', onUp);
   };
 
-  // Check existing session on load
+  // Check existing session on load (supporting Metabase session parameters and cookie SSO)
   useEffect(() => {
-    fetchCurrentUser()
-      .then((res) => {
-        if (res?.user) {
-          setUser(res.user);
+    let sessionFromUrl: string | null = null;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      sessionFromUrl = urlParams.get('session');
+      if (sessionFromUrl) {
+        setStoredMetabaseSession(sessionFromUrl);
+        urlParams.delete('session');
+        const cleanQuery = urlParams.toString() ? `?${urlParams.toString()}` : '';
+        const cleanUrl = `${window.location.pathname}${cleanQuery}${window.location.hash}`;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch {
+      // ignore URL parsing errors
+    }
+
+    const checkAndInitUser = async () => {
+      let res = await fetchCurrentUser();
+      if (!res?.user) {
+        // Try sync from Metabase session (from URL, cookie, or localStorage)
+        const syncRes = await syncSessionFromMetabase(sessionFromUrl || undefined);
+        if (syncRes?.user) {
+          res = await fetchCurrentUser();
         }
-      })
-      .finally(() => {
-        setBootstrapping(false);
-      });
+      }
+
+      if (res?.user) {
+        setUser(res.user);
+        if (res.user.role === 'USER') {
+          const arenaChosen = sessionStorage.getItem('cp_arena_chosen');
+          if (arenaChosen !== 'true') {
+            setShowContestSelectPage(true);
+          }
+        } else if (res.user.role === 'ADMIN') {
+          const savedAdminContest = sessionStorage.getItem('cp_admin_contest');
+          if (!savedAdminContest) {
+            setShowContestSelectPage(true);
+          }
+        }
+      }
+    };
+
+    checkAndInitUser().finally(() => {
+      setBootstrapping(false);
+    });
+  }, []);
+
+  // Synchronize login/logout across browser tabs instantly
+  useEffect(() => {
+    const handleStorageEvent = (evt: StorageEvent) => {
+      if (evt.key === AUTH_SYNC_EVENT_KEY && evt.newValue) {
+        try {
+          const eventData = JSON.parse(evt.newValue);
+          if (eventData.action === 'LOGOUT') {
+            setUser(null);
+            setAdminContestId(null);
+            setShowContestSelectPage(false);
+            setQuestions([]);
+            setQuestionDetail(null);
+            try {
+              sessionStorage.removeItem('cp_arena_chosen');
+              sessionStorage.removeItem('cp_admin_contest');
+            } catch {
+              // ignore
+            }
+          } else if (eventData.action === 'LOGIN') {
+            fetchCurrentUser().then((res) => {
+              if (res?.user) {
+                setUser(res.user);
+              }
+            });
+          }
+        } catch {
+          // ignore parsing errors
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageEvent);
+    return () => window.removeEventListener('storage', handleStorageEvent);
   }, []);
 
   const loadErdForDb = useCallback(async (dbName: string) => {
@@ -307,6 +393,14 @@ export const App: React.FC = () => {
           setSelectedQ(targetQ);
         }
       } catch (err: any) {
+        if (err?.code === 'CONTEST_INACTIVE' || err?.message?.includes('tạm dừng') || err?.message?.includes('chưa mở cửa')) {
+          try {
+            sessionStorage.removeItem('cp_arena_chosen');
+          } catch {
+            // ignore
+          }
+          setShowContestSelectPage(true);
+        }
         if (!silent) {
           showToast(err?.message || 'Failed to load contest progression');
         }
@@ -335,6 +429,14 @@ export const App: React.FC = () => {
           });
         }
       } catch (err: any) {
+        if (err?.code === 'CONTEST_INACTIVE' || err?.message?.includes('tạm dừng') || err?.message?.includes('chưa mở cửa')) {
+          try {
+            sessionStorage.removeItem('cp_arena_chosen');
+          } catch {
+            // ignore
+          }
+          setShowContestSelectPage(true);
+        }
         if (!silent) {
           setDetailError(err?.message || 'Unable to load question dossier');
         }
@@ -377,6 +479,27 @@ export const App: React.FC = () => {
       es.onmessage = (evt) => {
         try {
           const payload = JSON.parse(evt.data);
+          if (payload.type === 'CONTEST_STATUS_CHANGED') {
+            if (
+              payload.contestId === activeContestId &&
+              (!payload.isActive || payload.action === 'PAUSE' || payload.action === 'STOP')
+            ) {
+              try {
+                sessionStorage.removeItem('cp_arena_chosen');
+              } catch {
+                // ignore
+              }
+              setShowContestSelectPage(true);
+              showToast(
+                `⚠️ Đấu trường "${
+                  payload.contestId === 'training' ? 'Huấn Luyện SQL' : 'Đại Án Parallax'
+                }" đã bị ${
+                  payload.action === 'STOP' ? 'DỪNG & ĐẶT LẠI TIẾN ĐỘ' : 'TẠM DỪNG'
+                } bởi Ban tổ chức.`
+              );
+              return;
+            }
+          }
           if (payload.type && payload.type !== 'CONNECTED') {
             refreshRealtimeState();
           }
@@ -401,9 +524,59 @@ export const App: React.FC = () => {
     loadSelectedQuestionDetail(selectedQ, false);
   }, [user, selectedQ, loadSelectedQuestionDetail]);
 
+  const handleSelectContest = useCallback(
+    (contestId: string) => {
+      if (user?.role === 'ADMIN') {
+        setAdminContestId(contestId);
+        try {
+          sessionStorage.setItem('cp_admin_contest', contestId);
+        } catch {
+          // ignore
+        }
+        setShowContestSelectPage(false);
+        showToast(
+          `✓ Đang chuyển sang quản trị ${
+            contestId === 'training'
+              ? 'Đấu Trường Huấn Luyện SQL'
+              : 'Đại Án Parallax (Chính Thức)'
+          }`
+        );
+        return;
+      }
+
+      try {
+        sessionStorage.setItem('cp_arena_chosen', 'true');
+      } catch {
+        // ignore storage errors
+      }
+      setActiveContestId(contestId);
+      setActiveContestIdState(contestId);
+      setShowContestSelectPage(false);
+      setSelectedQ(1);
+      loadContestantOverview(true, false);
+      loadSelectedQuestionDetail(1, false);
+      showToast(
+        `✓ Đã vào ${
+          contestId === 'training'
+            ? 'Đấu Trường Huấn Luyện SQL'
+            : 'Đại Án Parallax (Chính Thức)'
+        }`
+      );
+    },
+    [user, loadContestantOverview, loadSelectedQuestionDetail, showToast]
+  );
+
   const handleLogout = async () => {
+    try {
+      sessionStorage.removeItem('cp_arena_chosen');
+      sessionStorage.removeItem('cp_admin_contest');
+    } catch {
+      // ignore
+    }
     await logoutSession();
     setUser(null);
+    setAdminContestId(null);
+    setShowContestSelectPage(false);
     setQuestions([]);
     setQuestionDetail(null);
   };
@@ -501,7 +674,45 @@ export const App: React.FC = () => {
   if (!user) {
     return (
       <AuthLogin
-        onLoginSuccess={(loggedInUser) => setUser(loggedInUser)}
+        onLoginSuccess={(loggedInUser) => {
+          setUser(loggedInUser);
+          if (loggedInUser.role === 'USER') {
+            try {
+              sessionStorage.removeItem('cp_arena_chosen');
+            } catch {
+              // ignore
+            }
+            setShowContestSelectPage(true);
+          } else if (loggedInUser.role === 'ADMIN') {
+            setAdminContestId(null);
+            try {
+              sessionStorage.removeItem('cp_admin_contest');
+            } catch {
+              // ignore
+            }
+            setShowContestSelectPage(true);
+          }
+        }}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
+    );
+  }
+
+  if (showContestSelectPage || (user.role === 'ADMIN' && !adminContestId)) {
+    return (
+      <ContestSelectPage
+        user={user}
+        currentContestId={user.role === 'ADMIN' ? (adminContestId || 'official') : activeContestId}
+        onSelectContest={handleSelectContest}
+        onBackToWorkstation={
+          user.role === 'ADMIN' && adminContestId
+            ? () => setShowContestSelectPage(false)
+            : user.role === 'USER' && sessionStorage.getItem('cp_arena_chosen') === 'true'
+            ? () => setShowContestSelectPage(false)
+            : undefined
+        }
+        onLogout={handleLogout}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -515,6 +726,18 @@ export const App: React.FC = () => {
           user={user}
           progress={progress}
           scoreSummary={scoreSummary}
+          activeContestId={user.role === 'ADMIN' ? (adminContestId || 'official') : activeContestId}
+          onOpenContestSelect={() => {
+            if (user.role === 'ADMIN') {
+              setAdminContestId(null);
+              try {
+                sessionStorage.removeItem('cp_admin_contest');
+              } catch {
+                // ignore
+              }
+            }
+            setShowContestSelectPage(true);
+          }}
           onLogout={handleLogout}
           theme={theme}
           onToggleTheme={handleToggleTheme}
@@ -522,7 +745,18 @@ export const App: React.FC = () => {
 
         {user.role === 'ADMIN' ? (
           <ErrorBoundary panelName="Admin Dashboard">
-            <AdminDashboard />
+            <AdminDashboard
+              contestId={adminContestId || 'official'}
+              onSwitchContest={() => {
+                setAdminContestId(null);
+                try {
+                  sessionStorage.removeItem('cp_admin_contest');
+                } catch {
+                  // ignore
+                }
+                setShowContestSelectPage(true);
+              }}
+            />
           </ErrorBoundary>
         ) : (
           <main
