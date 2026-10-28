@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import {
   AUTH_SYNC_EVENT_KEY,
   activateQuestionRiskMove,
@@ -18,14 +18,27 @@ import {
   submitQuestionAnswer,
   syncSessionFromMetabase,
 } from './api';
-import { AdminDashboard } from './components/AdminDashboard';
-import { AuthLogin } from './components/AuthLogin';
-import { ContestSelectPage } from './components/ContestSelectPage';
-import { CaseRecordView } from './components/CaseRecordView';
-import { ErdCanvas } from './components/ErdCanvas';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { QuestionSidebar } from './components/QuestionSidebar';
 import { TopBanner } from './components/TopBanner';
+
+const AdminDashboard = lazy(() =>
+  import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
+const AuthLogin = lazy(() =>
+  import('./components/AuthLogin').then((m) => ({ default: m.AuthLogin }))
+);
+const ContestSelectPage = lazy(() =>
+  import('./components/ContestSelectPage').then((m) => ({ default: m.ContestSelectPage }))
+);
+const CaseRecordView = lazy(() =>
+  import('./components/CaseRecordView').then((m) => ({ default: m.CaseRecordView }))
+);
+const ErdCanvas = lazy(() =>
+  import('./components/ErdCanvas').then((m) => ({ default: m.ErdCanvas }))
+);
+const QuestionSidebar = lazy(() =>
+  import('./components/QuestionSidebar').then((m) => ({ default: m.QuestionSidebar }))
+);
 import { applyTheme, getInitialTheme, initThemeSync, type ThemeMode } from './theme/theme';
 import type {
   AuthUser,
@@ -54,7 +67,13 @@ export const App: React.FC = () => {
   const [bootstrapping, setBootstrapping] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [activeContestId, setActiveContestIdState] = useState<string>(() => getActiveContestId());
-  const [showContestSelectPage, setShowContestSelectPage] = useState<boolean>(false);
+  const [showContestSelectPage, setShowContestSelectPage] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('cp_arena_chosen') !== 'true';
+    } catch {
+      return true;
+    }
+  });
   const [adminContestId, setAdminContestId] = useState<string | null>(() => {
     try {
       return sessionStorage.getItem('cp_admin_contest');
@@ -110,12 +129,14 @@ export const App: React.FC = () => {
   const [requestingHintKey, setRequestingHintKey] = useState<string | null>(null);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(true);
 
-  // ERD State
+  // ERD State (lazy-initialized only after active contest unlocks are fetched)
   const [erd, setErd] = useState<ContestErdMetadata | null>(null);
   const [erdLoading, setErdLoading] = useState(false);
   const [highlightedTable, setHighlightedTable] = useState<string | null>(null);
-  const [unlockedDatabases, setUnlockedDatabases] = useState<string[]>(['parallax_c1']);
-  const [activeDatabase, setActiveDatabase] = useState<string>('parallax_c1');
+  const [unlockedDatabases, setUnlockedDatabases] = useState<string[]>([]);
+  const [activeDatabase, setActiveDatabase] = useState<string>('');
+  const erdCacheRef = useRef<Record<string, ContestErdMetadata>>({});
+  const lastRealtimeSyncRef = useRef<number>(0);
 
   // Toast State
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -300,14 +321,10 @@ export const App: React.FC = () => {
         setUser(res.user);
         if (res.user.role === 'USER') {
           const arenaChosen = sessionStorage.getItem('cp_arena_chosen');
-          if (arenaChosen !== 'true') {
-            setShowContestSelectPage(true);
-          }
+          setShowContestSelectPage(arenaChosen !== 'true');
         } else if (res.user.role === 'ADMIN') {
           const savedAdminContest = sessionStorage.getItem('cp_admin_contest');
-          if (!savedAdminContest) {
-            setShowContestSelectPage(true);
-          }
+          setShowContestSelectPage(!savedAdminContest);
         }
       }
     };
@@ -352,10 +369,15 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageEvent);
   }, []);
 
-  const loadErdForDb = useCallback(async (dbName: string) => {
+  const loadErdForDb = useCallback(async (dbName: string, force: boolean = false) => {
+    if (!force && erdCacheRef.current[dbName]) {
+      setErd(erdCacheRef.current[dbName]);
+      return;
+    }
     setErdLoading(true);
     try {
       const erdData = await fetchErdMetadata(dbName);
+      erdCacheRef.current[dbName] = erdData;
       setErd(erdData);
     } catch {
       // ignore
@@ -376,17 +398,21 @@ export const App: React.FC = () => {
         setScoreSummary(data.scoreSummary);
         if (unlockData && unlockData.unlockedDatabases) {
           setUnlockedDatabases(unlockData.unlockedDatabases);
-          const nextActive = unlockData.unlockedDatabases.includes(activeDatabase)
-            ? (unlockData.activeDatabase || activeDatabase)
-            : (unlockData.activeDatabase || 'parallax_c1');
-          setActiveDatabase(nextActive);
-          try {
-            localStorage.setItem('cp_active_database', nextActive);
-            localStorage.setItem('cp_unlocked_dbs', JSON.stringify(unlockData.unlockedDatabases));
-            localStorage.setItem('cp_db_sync_timestamp', String(Date.now()));
-          } catch {
-            // ignore storage quota
-          }
+          const highestUnlockedDb =
+            unlockData.activeDatabase ||
+            unlockData.unlockedDatabases[unlockData.unlockedDatabases.length - 1] ||
+            '';
+          setActiveDatabase((prevActive) => {
+            const nextActive = highestUnlockedDb || prevActive;
+            try {
+              localStorage.setItem('cp_active_database', nextActive);
+              localStorage.setItem('cp_unlocked_dbs', JSON.stringify(unlockData.unlockedDatabases));
+              localStorage.setItem('cp_db_sync_timestamp', String(Date.now()));
+            } catch {
+              // ignore storage quota
+            }
+            return nextActive;
+          });
         }
         if (autoSelectCurrent && data.progress?.currentQuestionNumber) {
           const targetQ = Math.min(3, Math.max(1, data.progress.currentQuestionNumber));
@@ -421,12 +447,7 @@ export const App: React.FC = () => {
         setDetailError(null);
         if (d?.question?.targetDatabase) {
           const tDb = d.question.targetDatabase;
-          setUnlockedDatabases((prevUnlocked) => {
-            if (prevUnlocked.includes(tDb)) {
-              setActiveDatabase(tDb);
-            }
-            return prevUnlocked;
-          });
+          setActiveDatabase((prevActive) => prevActive || tDb);
         }
       } catch (err: any) {
         if (err?.code === 'CONTEST_INACTIVE' || err?.message?.includes('tạm dừng') || err?.message?.includes('chưa mở cửa')) {
@@ -449,24 +470,30 @@ export const App: React.FC = () => {
     []
   );
 
-  // Sync ERD schema when activeDatabase changes
+  // Sync ERD schema lazily ONLY when inside the Contestant Workstation and activeDatabase is resolved
   useEffect(() => {
-    if (!user || user.role !== 'USER') return;
+    if (!user || user.role !== 'USER' || showContestSelectPage || !activeDatabase) return;
     loadErdForDb(activeDatabase);
-  }, [user, activeDatabase, loadErdForDb]);
+  }, [user, showContestSelectPage, activeDatabase, loadErdForDb]);
 
-  // Load Contestant workspace data & subscribe to real-time SSE + silent fallback sync
+  // Load Contestant workspace data lazily ONLY when inside the Workstation & subscribe to real-time SSE
   useEffect(() => {
-    if (!user || user.role !== 'USER') return;
+    if (!user || user.role !== 'USER' || showContestSelectPage) return;
+    lastRealtimeSyncRef.current = Date.now();
     loadContestantOverview(true, false);
 
     const refreshRealtimeState = () => {
+      lastRealtimeSyncRef.current = Date.now();
       loadContestantOverview(false, true);
       loadSelectedQuestionDetail(selectedQRef.current, true);
     };
 
-    // Fast silent polling fallback (every 3.5s)
-    const timer = setInterval(refreshRealtimeState, 3500);
+    // Low-frequency fallback sync (every 180s when tab is visible); primary updates arrive via SSE
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshRealtimeState();
+      }
+    }, 180000);
 
     // Real-time Server-Sent Events (SSE) stream for immediate status & points updates
     let es: EventSource | null = null;
@@ -489,6 +516,11 @@ export const App: React.FC = () => {
               } catch {
                 // ignore
               }
+              setQuestions([]);
+              setQuestionDetail(null);
+              setErd(null);
+              setUnlockedDatabases([]);
+              setActiveDatabase('');
               setShowContestSelectPage(true);
               showToast(
                 `⚠️ Đấu trường "${
@@ -509,7 +541,11 @@ export const App: React.FC = () => {
       };
     }
 
-    const handleWindowFocus = () => refreshRealtimeState();
+    const handleWindowFocus = () => {
+      if (Date.now() - lastRealtimeSyncRef.current > 60000) {
+        refreshRealtimeState();
+      }
+    };
     window.addEventListener('focus', handleWindowFocus);
 
     return () => {
@@ -517,12 +553,16 @@ export const App: React.FC = () => {
       es?.close();
       window.removeEventListener('focus', handleWindowFocus);
     };
-  }, [user, loadContestantOverview, loadSelectedQuestionDetail]);
+  }, [user, showContestSelectPage, activeContestId, loadContestantOverview, loadSelectedQuestionDetail]);
 
+  // Lazy-load the selected question's full dossier only after overview confirms the question is unlocked
   useEffect(() => {
-    if (!user || user.role !== 'USER') return;
+    if (!user || user.role !== 'USER' || showContestSelectPage) return;
+    if (questions.length === 0) return;
+    const selectedItem = questions.find((q) => q.questionNumber === selectedQ);
+    if (selectedItem && !selectedItem.isUnlocked) return;
     loadSelectedQuestionDetail(selectedQ, false);
-  }, [user, selectedQ, loadSelectedQuestionDetail]);
+  }, [user, showContestSelectPage, activeContestId, selectedQ, questions, loadSelectedQuestionDetail]);
 
   const handleSelectContest = useCallback(
     (contestId: string) => {
@@ -549,12 +589,15 @@ export const App: React.FC = () => {
       } catch {
         // ignore storage errors
       }
+      setQuestions([]);
+      setQuestionDetail(null);
+      setErd(null);
+      setUnlockedDatabases([]);
+      setActiveDatabase('');
       setActiveContestId(contestId);
       setActiveContestIdState(contestId);
-      setShowContestSelectPage(false);
       setSelectedQ(1);
-      loadContestantOverview(true, false);
-      loadSelectedQuestionDetail(1, false);
+      setShowContestSelectPage(false);
       showToast(
         `✓ Đã vào ${
           contestId === 'training'
@@ -563,7 +606,7 @@ export const App: React.FC = () => {
         }`
       );
     },
-    [user, loadContestantOverview, loadSelectedQuestionDetail, showToast]
+    [user, showToast]
   );
 
   const handleLogout = async () => {
@@ -609,7 +652,13 @@ export const App: React.FC = () => {
     useRiskMove: boolean = false
   ) => {
     try {
-      const res = await submitQuestionAnswer(questionNumber, answerContent, investigationIndex, useRiskMove);
+      const res: any = await submitQuestionAnswer(questionNumber, answerContent, investigationIndex, useRiskMove);
+      if (Array.isArray(res?.unlockedDatabases) && res.unlockedDatabases.length > 0) {
+        setUnlockedDatabases(res.unlockedDatabases);
+      }
+      if (res?.activeDatabase) {
+        setActiveDatabase(res.activeDatabase);
+      }
       showToast(
         res.isCorrect
           ? `✓ ${res.feedbackMessage}`
@@ -673,49 +722,53 @@ export const App: React.FC = () => {
 
   if (!user) {
     return (
-      <AuthLogin
-        onLoginSuccess={(loggedInUser) => {
-          setUser(loggedInUser);
-          if (loggedInUser.role === 'USER') {
-            try {
-              sessionStorage.removeItem('cp_arena_chosen');
-            } catch {
-              // ignore
+      <Suspense fallback={null}>
+        <AuthLogin
+          onLoginSuccess={(loggedInUser) => {
+            setUser(loggedInUser);
+            if (loggedInUser.role === 'USER') {
+              try {
+                sessionStorage.removeItem('cp_arena_chosen');
+              } catch {
+                // ignore
+              }
+              setShowContestSelectPage(true);
+            } else if (loggedInUser.role === 'ADMIN') {
+              setAdminContestId(null);
+              try {
+                sessionStorage.removeItem('cp_admin_contest');
+              } catch {
+                // ignore
+              }
+              setShowContestSelectPage(true);
             }
-            setShowContestSelectPage(true);
-          } else if (loggedInUser.role === 'ADMIN') {
-            setAdminContestId(null);
-            try {
-              sessionStorage.removeItem('cp_admin_contest');
-            } catch {
-              // ignore
-            }
-            setShowContestSelectPage(true);
-          }
-        }}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-      />
+          }}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+        />
+      </Suspense>
     );
   }
 
   if (showContestSelectPage || (user.role === 'ADMIN' && !adminContestId)) {
     return (
-      <ContestSelectPage
-        user={user}
-        currentContestId={user.role === 'ADMIN' ? (adminContestId || 'official') : activeContestId}
-        onSelectContest={handleSelectContest}
-        onBackToWorkstation={
-          user.role === 'ADMIN' && adminContestId
-            ? () => setShowContestSelectPage(false)
-            : user.role === 'USER' && sessionStorage.getItem('cp_arena_chosen') === 'true'
-            ? () => setShowContestSelectPage(false)
-            : undefined
-        }
-        onLogout={handleLogout}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-      />
+      <Suspense fallback={null}>
+        <ContestSelectPage
+          user={user}
+          currentContestId={user.role === 'ADMIN' ? (adminContestId || 'official') : activeContestId}
+          onSelectContest={handleSelectContest}
+          onBackToWorkstation={
+            user.role === 'ADMIN' && adminContestId
+              ? () => setShowContestSelectPage(false)
+              : user.role === 'USER' && sessionStorage.getItem('cp_arena_chosen') === 'true'
+              ? () => setShowContestSelectPage(false)
+              : undefined
+          }
+          onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+        />
+      </Suspense>
     );
   }
 
@@ -745,124 +798,128 @@ export const App: React.FC = () => {
 
         {user.role === 'ADMIN' ? (
           <ErrorBoundary panelName="Admin Dashboard">
-            <AdminDashboard
-              contestId={adminContestId || 'official'}
-              onSwitchContest={() => {
-                setAdminContestId(null);
-                try {
-                  sessionStorage.removeItem('cp_admin_contest');
-                } catch {
-                  // ignore
-                }
-                setShowContestSelectPage(true);
-              }}
-            />
+            <Suspense fallback={<div style={{ padding: '24px', fontFamily: 'var(--font-mono)' }}>Đang tải bảng điều khiển quản trị...</div>}>
+              <AdminDashboard
+                contestId={adminContestId || 'official'}
+                onSwitchContest={() => {
+                  setAdminContestId(null);
+                  try {
+                    sessionStorage.removeItem('cp_admin_contest');
+                  } catch {
+                    // ignore
+                  }
+                  setShowContestSelectPage(true);
+                }}
+              />
+            </Suspense>
           </ErrorBoundary>
         ) : (
-          <main
-            ref={workstationRef}
-            className={`cp-user-workstation ${activeResizer ? 'cp-is-resizing-col' : ''}`}
-          >
-            {/* 1. Questions List Sidebar (Hideable) */}
-            {!isSidebarHidden && (
-              <>
-                <ErrorBoundary panelName="Question Sidebar">
-                  <QuestionSidebar
-                    style={{
-                      width: `${sidebarWidth}px`,
-                      minWidth: `${MIN_SIDEBAR_WIDTH}px`,
-                      maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
-                      flexShrink: 0,
-                    }}
-                    questions={questions}
-                    progress={progress}
-                    scoreSummary={scoreSummary}
-                    selectedQuestionNumber={selectedQ}
-                    onSelectQuestion={(qNum) => setSelectedQ(qNum)}
-                    onActivateRiskMove={handleActivateRiskMove}
-                    onToggleHide={toggleSidebar}
-                  />
-                </ErrorBoundary>
-
-                {/* Vertical Border Resizer: Questions List <-> Dossier */}
-                <div
-                  className={`cp-v-splitter ${
-                    activeResizer === 'sidebar' ? 'cp-v-splitter-active' : ''
-                  }`}
-                  onMouseDown={handleSidebarBorderMouseDown}
-                  onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
-                  role="separator"
-                  aria-orientation="vertical"
-                  title="Drag border to resize Questions List & Dossier (Double-click to reset)"
-                >
-                  <div className="cp-v-splitter-grip" />
-                </div>
-              </>
-            )}
-
-            {/* 2. Combined Question Case Dossier & Submit Column */}
-            <ErrorBoundary panelName="Case Record Dossier">
-              <CaseRecordView
-                style={{
-                  width: `${dossierWidth}px`,
-                  minWidth: `${MIN_DOSSIER_WIDTH}px`,
-                  maxWidth: `${MAX_DOSSIER_WIDTH}px`,
-                  height: '100%',
-                  maxHeight: '100%',
-                  minHeight: 0,
-                  flexShrink: 0,
-                }}
-                detail={questionDetail}
-                loading={detailLoading}
-                error={detailError}
-                isLiveConnected={isLiveConnected}
-                onSubmitAnswer={handleSubmitAnswer}
-                onRequestHint={handleRequestHint}
-                requestingHintKey={requestingHintKey}
-                onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
-                onNavigateQuestion={(qNum) => setSelectedQ(qNum)}
-                isSidebarHidden={isSidebarHidden}
-                onToggleSidebar={toggleSidebar}
-              />
-            </ErrorBoundary>
-
-            {/* Vertical Border Resizer: Dossiers <-> ERD */}
-            <div
-              className={`cp-v-splitter ${
-                activeResizer === 'dossier' ? 'cp-v-splitter-active' : ''
-              }`}
-              onMouseDown={handleDossierErdBorderMouseDown}
-              onDoubleClick={() => setDossierWidth(DEFAULT_DOSSIER_WIDTH)}
-              role="separator"
-              aria-orientation="vertical"
-              title="Drag border to resize Dossier & ERD panels (Double-click to reset)"
+          <Suspense fallback={<div style={{ padding: '24px', fontFamily: 'var(--font-mono)' }}>Đang tải không gian điều tra...</div>}>
+            <main
+              ref={workstationRef}
+              className={`cp-user-workstation ${activeResizer ? 'cp-is-resizing-col' : ''}`}
             >
-              <div className="cp-v-splitter-grip" />
-            </div>
+              {/* 1. Questions List Sidebar (Hideable) */}
+              {!isSidebarHidden && (
+                <>
+                  <ErrorBoundary panelName="Question Sidebar">
+                    <QuestionSidebar
+                      style={{
+                        width: `${sidebarWidth}px`,
+                        minWidth: `${MIN_SIDEBAR_WIDTH}px`,
+                        maxWidth: `${MAX_SIDEBAR_WIDTH}px`,
+                        flexShrink: 0,
+                      }}
+                      questions={questions}
+                      progress={progress}
+                      scoreSummary={scoreSummary}
+                      selectedQuestionNumber={selectedQ}
+                      onSelectQuestion={(qNum) => setSelectedQ(qNum)}
+                      onActivateRiskMove={handleActivateRiskMove}
+                      onToggleHide={toggleSidebar}
+                    />
+                  </ErrorBoundary>
 
-            {/* 3. Optimized Interactive Parallax Chapter ERD Canvas Column */}
-            <ErrorBoundary panelName="ERD Canvas">
-              <ErdCanvas
-                style={{
-                  minWidth: `${MIN_ERD_WIDTH}px`,
-                  maxWidth: `${MAX_ERD_WIDTH}px`,
-                  flex: 1,
-                  flexShrink: 0,
-                }}
-                erd={erd}
-                loading={erdLoading}
-                highlightedTable={highlightedTable}
-                onSelectTable={(tbl) => setHighlightedTable(tbl)}
-                activeQuestionNumber={selectedQ}
-                unlockedDatabases={unlockedDatabases}
-                activeDatabase={activeDatabase}
-                onSelectDatabase={(db) => {
-                  setActiveDatabase(db);
-                  loadErdForDb(db);
-                }}
-              />
-            </ErrorBoundary>
-          </main>
+                  {/* Vertical Border Resizer: Questions List <-> Dossier */}
+                  <div
+                    className={`cp-v-splitter ${
+                      activeResizer === 'sidebar' ? 'cp-v-splitter-active' : ''
+                    }`}
+                    onMouseDown={handleSidebarBorderMouseDown}
+                    onDoubleClick={() => setSidebarWidth(DEFAULT_SIDEBAR_WIDTH)}
+                    role="separator"
+                    aria-orientation="vertical"
+                    title="Drag border to resize Questions List & Dossier (Double-click to reset)"
+                  >
+                    <div className="cp-v-splitter-grip" />
+                  </div>
+                </>
+              )}
+
+              {/* 2. Combined Question Case Dossier & Submit Column */}
+              <ErrorBoundary panelName="Case Record Dossier">
+                <CaseRecordView
+                  style={{
+                    width: `${dossierWidth}px`,
+                    minWidth: `${MIN_DOSSIER_WIDTH}px`,
+                    maxWidth: `${MAX_DOSSIER_WIDTH}px`,
+                    height: '100%',
+                    maxHeight: '100%',
+                    minHeight: 0,
+                    flexShrink: 0,
+                  }}
+                  detail={questionDetail}
+                  loading={detailLoading}
+                  error={detailError}
+                  isLiveConnected={isLiveConnected}
+                  onSubmitAnswer={handleSubmitAnswer}
+                  onRequestHint={handleRequestHint}
+                  requestingHintKey={requestingHintKey}
+                  onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
+                  onNavigateQuestion={(qNum) => setSelectedQ(qNum)}
+                  isSidebarHidden={isSidebarHidden}
+                  onToggleSidebar={toggleSidebar}
+                />
+              </ErrorBoundary>
+
+              {/* Vertical Border Resizer: Dossiers <-> ERD */}
+              <div
+                className={`cp-v-splitter ${
+                  activeResizer === 'dossier' ? 'cp-v-splitter-active' : ''
+                }`}
+                onMouseDown={handleDossierErdBorderMouseDown}
+                onDoubleClick={() => setDossierWidth(DEFAULT_DOSSIER_WIDTH)}
+                role="separator"
+                aria-orientation="vertical"
+                title="Drag border to resize Dossier & ERD panels (Double-click to reset)"
+              >
+                <div className="cp-v-splitter-grip" />
+              </div>
+
+              {/* 3. Optimized Interactive Parallax Chapter ERD Canvas Column */}
+              <ErrorBoundary panelName="ERD Canvas">
+                <ErdCanvas
+                  style={{
+                    minWidth: `${MIN_ERD_WIDTH}px`,
+                    maxWidth: `${MAX_ERD_WIDTH}px`,
+                    flex: 1,
+                    flexShrink: 0,
+                  }}
+                  erd={erd}
+                  loading={erdLoading}
+                  highlightedTable={highlightedTable}
+                  onSelectTable={(tbl) => setHighlightedTable(tbl)}
+                  activeQuestionNumber={selectedQ}
+                  unlockedDatabases={unlockedDatabases}
+                  activeDatabase={activeDatabase}
+                  onSelectDatabase={(db) => {
+                    setActiveDatabase(db);
+                    loadErdForDb(db);
+                  }}
+                />
+              </ErrorBoundary>
+            </main>
+          </Suspense>
         )}
 
         {toastMsg && (

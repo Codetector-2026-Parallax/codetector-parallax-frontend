@@ -72,6 +72,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Answer Key Editing State
   const [editingQ, setEditingQ] = useState<number | null>(null);
   const [editingAnswersText, setEditingAnswersText] = useState<string>('');
+  const [editingInvAnswersText, setEditingInvAnswersText] = useState<Record<string, string>>({});
   const [answersSubmitting, setAnswersSubmitting] = useState(false);
 
   const showToast = (msg: string) => {
@@ -81,27 +82,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }, 3500);
   };
 
+  // Load contest metadata once when contestId changes
+  useEffect(() => {
+    fetchAdminContests()
+      .then((contestsData) => {
+        if (Array.isArray(contestsData)) {
+          setContests(contestsData);
+        }
+      })
+      .catch(() => {});
+  }, [contestId]);
+
+  // Lazy-load ONLY the data for the currently active tab
   const loadAllAdminData = useCallback(
     async (silent: boolean = false) => {
       if (!silent) setLoading(true);
       try {
-        const [hintsData, lbData, subsData, qData, contestsData] = await Promise.all([
-          fetchAdminHints(undefined, contestId),
-          fetchAdminLeaderboard(contestId),
-          fetchAdminSubmissions({
+        if (activeTab === 'HINTS') {
+          const hintsData = await fetchAdminHints(undefined, contestId);
+          setHints(hintsData.hintRequests);
+        } else if (activeTab === 'LEADERBOARD') {
+          const lbData = await fetchAdminLeaderboard(contestId);
+          setLeaderboard(lbData.leaderboard);
+        } else if (activeTab === 'SUBMISSIONS') {
+          const subsData = await fetchAdminSubmissions({
             contestId,
             questionNumber: subQuestionFilter ? Number(subQuestionFilter) : undefined,
             status: subStatusFilter || undefined,
-          }),
-          fetchAdminQuestions(contestId),
-          fetchAdminContests().catch(() => []),
-        ]);
-        setHints(hintsData.hintRequests);
-        setLeaderboard(lbData.leaderboard);
-        setSubmissions(subsData.submissions);
-        setQuestions(qData.questions);
-        if (Array.isArray(contestsData)) {
-          setContests(contestsData);
+          });
+          setSubmissions(subsData.submissions);
+        } else if (activeTab === 'ANSWERS') {
+          const qData = await fetchAdminQuestions(contestId);
+          setQuestions(qData.questions);
         }
       } catch (err: any) {
         if (!silent) {
@@ -111,12 +123,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         if (!silent) setLoading(false);
       }
     },
-    [contestId, subQuestionFilter, subStatusFilter]
+    [activeTab, contestId, subQuestionFilter, subStatusFilter]
   );
 
   useEffect(() => {
     loadAllAdminData(false);
-    const timer = setInterval(() => loadAllAdminData(true), 4000);
+    // Low-frequency fallback sync (every 180s when visible); primary updates arrive via SSE
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadAllAdminData(true);
+      }
+    }, 180000);
 
     let es: EventSource | null = null;
     if (typeof EventSource !== 'undefined') {
@@ -126,6 +143,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       es.onmessage = (evt) => {
         try {
           const payload = JSON.parse(evt.data);
+          if (payload.type === 'CONTEST_STATUS_CHANGED') {
+            fetchAdminContests()
+              .then((cData) => {
+                if (Array.isArray(cData)) setContests(cData);
+              })
+              .catch(() => {});
+          }
           if (payload.type && payload.type !== 'CONNECTED') {
             loadAllAdminData(true);
           }
@@ -180,17 +204,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleSaveAnswerKeys = async (questionNumber: number) => {
-    const parsed = editingAnswersText
+    const parsedInvAnswers: Record<string, string[]> = {};
+    for (const [k, txt] of Object.entries(editingInvAnswersText)) {
+      const lines = txt
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (lines.length > 0) {
+        parsedInvAnswers[k] = lines;
+      }
+    }
+
+    let parsed = editingAnswersText
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
+
+    if (Object.keys(parsedInvAnswers).length > 0) {
+      const primaryAnswers = Object.values(parsedInvAnswers)
+        .map((arr) => arr[0])
+        .filter(Boolean);
+      if (primaryAnswers.length > 0) {
+        parsed = primaryAnswers;
+      }
+    }
+
     if (parsed.length === 0) {
       showToast('Vui lòng nhập ít nhất một đáp án hợp lệ.');
       return;
     }
     setAnswersSubmitting(true);
     try {
-      await updateAdminQuestionAnswers(questionNumber, parsed, contestId);
+      await updateAdminQuestionAnswers(
+        questionNumber,
+        parsed,
+        contestId,
+        Object.keys(parsedInvAnswers).length > 0 ? parsedInvAnswers : undefined
+      );
       showToast(`✓ Đã lưu bộ đáp án chuẩn cho Câu hỏi ${questionNumber}.`);
       setEditingQ(null);
       await loadAllAdminData(true);
@@ -204,8 +254,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleToggleContest = async (cId: string) => {
     setActionLoading(true);
     try {
-      const updated = await toggleAdminContest(cId);
+      const targetContest = contests.find((c) => c.id === cId);
+      const nextIsActive = targetContest ? !targetContest.is_active : undefined;
+      const updated = await toggleAdminContest(cId, nextIsActive);
       showToast(`Đã ${updated.is_active ? 'BẬT (Mở cửa)' : 'TẮT (Tạm dừng)'} đấu trường "${updated.title}".`);
+      const cData = await fetchAdminContests().catch(() => []);
+      if (Array.isArray(cData)) setContests(cData);
       await loadAllAdminData(true);
     } catch (err: any) {
       showToast(err?.message || 'Không thể thay đổi trạng thái đấu trường');
@@ -220,6 +274,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const updated = await stopAdminContest(contestId);
       showToast(`✓ Đã DỪNG & ĐẶT LẠI toàn bộ tiến độ của "${updated.title}".`);
       setConfirmStopThisContest(false);
+      const cData = await fetchAdminContests().catch(() => []);
+      if (Array.isArray(cData)) setContests(cData);
       await loadAllAdminData(true);
     } catch (err: any) {
       showToast(err?.message || 'Không thể dừng đấu trường');
@@ -439,7 +495,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 ĐỘI THI ĐĂNG KÝ
               </div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 800 }}>
-                {leaderboard.length} đội
+                {leaderboard.length || currentContest?.activeTeamCount || 0} đội
               </div>
             </div>
             <span style={{ fontSize: '18px', opacity: 0.8 }}>👥</span>
@@ -519,7 +575,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 CÂU HỎI TRONG ĐẤU TRƯỜNG
               </div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '16px', fontWeight: 800 }}>
-                {questions.length} câu
+                {questions.length || currentContest?.questionCount || 3} câu
               </div>
             </div>
             <span style={{ fontSize: '18px', opacity: 0.8 }}>🔑</span>
@@ -1492,11 +1548,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         paddingBottom: '8px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span className="cp-sticker-badge cp-sticker-badge-score">
-                          CÂU HỎI {q.question_number}
+                          MẢNH GHÉP SỐ {String(q.question_number).padStart(2, '0')}
                         </span>
                         <strong style={{ fontSize: '14px' }}>{q.title}</strong>
+                        {q.target_database && (
+                          <span className="cp-sticker-badge" style={{ fontSize: '10px' }}>
+                            🗄️ {q.target_database}
+                          </span>
+                        )}
                         <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>
                           ({q.base_points} điểm | Tối đa 6 lần nộp)
                         </span>
@@ -1511,6 +1572,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             onClick={() => {
                               setEditingQ(q.question_number);
                               setEditingAnswersText((q.accepted_answers || []).join('\n'));
+                              const invMap: Record<string, string> = {};
+                              if (Array.isArray(q.investigations)) {
+                                q.investigations.forEach((inv, idx) => {
+                                  const key = String(inv.key ?? (idx === 0 ? 'A' : 'B'));
+                                  invMap[key] = (inv.acceptedAnswers || []).join('\n');
+                                });
+                              }
+                              setEditingInvAnswersText(invMap);
                             }}
                           >
                             ✎ CHỈNH SỬA ĐÁP ÁN
@@ -1519,25 +1588,158 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     </div>
 
+                    {/* Story & Database Note */}
+                    {(q.story || q.content) && (
+                      <div
+                        style={{
+                          backgroundColor: 'var(--color-surface-sunken)',
+                          border: '1px solid var(--border-soft)',
+                          borderLeft: '3px solid var(--color-primary)',
+                          padding: '10px 12px',
+                          marginBottom: '12px',
+                          fontSize: '12px',
+                          lineHeight: '1.6',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '11px', marginBottom: '4px', color: 'var(--color-primary)' }}>
+                          📜 DẪN TRUYỆN:
+                        </div>
+                        <div>{q.story || q.content}</div>
+                        {Array.isArray(q.case_dossier?.related_tables) && q.case_dossier.related_tables.length > 0 && (
+                          <div style={{ marginTop: '8px', fontStyle: 'italic', fontWeight: 700 }}>
+                            {q.question_number === 1 ? 'Bảng hiện có: ' : 'Bảng mở thêm: '}
+                            <span style={{ fontFamily: 'var(--font-mono)' }}>
+                              {q.case_dossier.related_tables.join(', ')}.
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Per-Investigation Details (Manh mối A & B) */}
+                    {Array.isArray(q.investigations) && q.investigations.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
+                        {q.investigations.map((inv, invIdx) => {
+                          const invKey = String(inv.key ?? (invIdx === 0 ? 'A' : 'B'));
+                          return (
+                            <div
+                              key={invKey}
+                              style={{
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--color-canvas)',
+                                padding: '10px 12px',
+                                fontSize: '12px',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)' }}>
+                                  MANH MỐI {invKey} ({inv.basePoints ?? 50} PTS)
+                                </strong>
+                                {inv.submissionFormat && (
+                                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--color-muted)' }}>
+                                    Định dạng: <strong>{inv.submissionFormat}</strong>
+                                  </span>
+                                )}
+                              </div>
+                              {inv.clue && (
+                                <div style={{ whiteSpace: 'pre-wrap', marginBottom: '6px', lineHeight: 1.5 }}>
+                                  {inv.clue}
+                                </div>
+                              )}
+                              {inv.image && (
+                                <div style={{ marginBottom: '8px' }}>
+                                  <img
+                                    src={inv.image}
+                                    alt={`Manh mối ${invKey}`}
+                                    style={{
+                                      maxHeight: '180px',
+                                      maxWidth: '100%',
+                                      objectFit: 'contain',
+                                      border: '1px solid var(--border-color)',
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              {inv.taskDescription && (
+                                <div style={{ marginBottom: '6px' }}>
+                                  <strong>Nhiệm vụ:</strong> {inv.taskDescription}
+                                </div>
+                              )}
+
+                              {isEditing ? (
+                                <div style={{ marginTop: '8px' }}>
+                                  <div style={{ fontSize: '11px', fontWeight: 700, marginBottom: '4px' }}>
+                                    ĐÁP ÁN CHẤP NHẬN CHO MANH MỐI {invKey} (mỗi dòng 1 biến thể):
+                                  </div>
+                                  <textarea
+                                    className="cp-input"
+                                    rows={Math.max(3, (inv.acceptedAnswers || []).length)}
+                                    style={{
+                                      width: '100%',
+                                      fontFamily: 'var(--font-mono)',
+                                      fontSize: '12px',
+                                      lineHeight: '1.5',
+                                    }}
+                                    value={editingInvAnswersText[invKey] ?? ''}
+                                    onChange={(e) =>
+                                      setEditingInvAnswersText((prev) => ({
+                                        ...prev,
+                                        [invKey]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '6px' }}>
+                                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-muted)' }}>
+                                    Đáp án (BTC):
+                                  </span>
+                                  {(inv.acceptedAnswers || []).map((ans: string, aIdx: number) => (
+                                    <span
+                                      key={aIdx}
+                                      className="cp-q-hint-trigger"
+                                      style={{
+                                        fontFamily: 'var(--font-mono)',
+                                        cursor: 'default',
+                                        fontSize: '11px',
+                                        padding: '2px 7px',
+                                      }}
+                                    >
+                                      {ans}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {isEditing ? (
                       <div>
-                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '6px' }}>
-                          ℹ Nhập mỗi đáp án hợp lệ trên một dòng riêng. Hệ thống tự động bỏ qua khoảng trắng thừa và không phân biệt hoa thường khi so khớp:
-                        </div>
-                        <textarea
-                          className="cp-input"
-                          rows={Math.max(4, (q.accepted_answers || []).length + 1)}
-                          style={{
-                            width: '100%',
-                            fontFamily: 'var(--font-mono)',
-                            fontSize: '12px',
-                            lineHeight: '1.6',
-                            marginBottom: '10px',
-                          }}
-                          value={editingAnswersText}
-                          onChange={(e) => setEditingAnswersText(e.target.value)}
-                          placeholder="Nhập mỗi đáp án chấp nhận trên 1 dòng..."
-                        />
+                        {(!Array.isArray(q.investigations) || q.investigations.length === 0) && (
+                          <>
+                            <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '6px' }}>
+                              ℹ Nhập mỗi đáp án hợp lệ trên một dòng riêng. Hệ thống tự động bỏ qua khoảng trắng thừa và không phân biệt hoa thường khi so khớp:
+                            </div>
+                            <textarea
+                              className="cp-input"
+                              rows={Math.max(4, (q.accepted_answers || []).length + 1)}
+                              style={{
+                                width: '100%',
+                                fontFamily: 'var(--font-mono)',
+                                fontSize: '12px',
+                                lineHeight: '1.6',
+                                marginBottom: '10px',
+                              }}
+                              value={editingAnswersText}
+                              onChange={(e) => setEditingAnswersText(e.target.value)}
+                              placeholder="Nhập mỗi đáp án chấp nhận trên 1 dòng..."
+                            />
+                          </>
+                        )}
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           <button
                             type="button"
@@ -1561,7 +1763,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     ) : (
                       <div>
                         <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginBottom: '6px' }}>
-                          CÁC ĐÁP ÁN ĐƯỢC CHẤP NHẬN HIỆN TẠI ({(q.accepted_answers || []).length}):
+                          ĐÁP ÁN CHUẨN TỔNG HỢP ({(q.accepted_answers || []).length}):
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                           {(q.accepted_answers || []).map((ans: string, idx: number) => (

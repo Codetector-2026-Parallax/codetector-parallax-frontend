@@ -492,7 +492,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            🗄️ {erd?.databaseName || activeDatabase || 'parallax_c1'}
+            🗄️ {erd?.databaseName || activeDatabase || '—'}
           </span>
         </div>
         {loading && (

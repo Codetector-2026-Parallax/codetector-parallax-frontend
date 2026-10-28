@@ -29,7 +29,7 @@ const DEFAULT_CONTESTS: ContestInfo[] = [
     description:
       '3 câu hỏi truy vấn dữ liệu SQL thuần túy trên cơ sở dữ liệu munihard.sql (bãi đỗ xe, cây ATM, nhật ký bảo tàng).',
     target_database: 'contestdb',
-    is_active: true,
+    is_active: false,
   },
   {
     id: 'official',
@@ -38,7 +38,7 @@ const DEFAULT_CONTESTS: ContestInfo[] = [
     description:
       '3 chương điều tra đại án vụ trộm bảo vật tại bảo tàng Aureum trên các phân hệ cơ sở dữ liệu parallax_c1 đến c3.',
     target_database: 'parallax_c1',
-    is_active: true,
+    is_active: false,
   },
 ];
 
@@ -84,7 +84,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
   useEffect(() => {
     loadContests();
 
-    // Real-time SSE updates for live contest status changes
+    // Real-time SSE updates only for contest status changes on the selection page
     let es: EventSource | null = null;
     if (typeof EventSource !== 'undefined') {
       const token = getStoredToken();
@@ -93,7 +93,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
       es.onmessage = (evt) => {
         try {
           const payload = JSON.parse(evt.data);
-          if (payload.type === 'CONTEST_STATUS_CHANGED' || payload.type === 'SCORE_ADJUSTED' || payload.type === 'SUBMISSION_CREATED') {
+          if (payload.type === 'CONTEST_STATUS_CHANGED') {
             loadContests();
           }
         } catch {
@@ -116,10 +116,12 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
     onSelectContest(contestId);
   };
 
-  const handleToggleContest = async (contestId: string) => {
+  const handleToggleContest = async (contestId: string, currentIsActive?: boolean) => {
     setActionLoading(true);
     try {
-      const updated = await toggleAdminContest(contestId);
+      const targetContest = contests.find((c) => c.id === contestId);
+      const nextIsActive = typeof currentIsActive === 'boolean' ? !currentIsActive : (targetContest ? !targetContest.is_active : undefined);
+      const updated = await toggleAdminContest(contestId, nextIsActive);
       showToast(`Đã ${updated.is_active ? 'BẬT (Mở cửa)' : 'TẮT (Tạm dừng)'} đấu trường "${updated.title}".`);
       await loadContests();
     } catch (err: any) {

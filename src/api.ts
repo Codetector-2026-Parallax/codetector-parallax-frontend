@@ -231,7 +231,7 @@ export async function fetchCurrentUser(): Promise<{
   scoreSummary?: TeamScoreSummary;
 } | null> {
   try {
-    return await apiFetch('/api/auth/me');
+    return await apiFetch('/api/auth/me?minimal=true');
   } catch {
     return null;
   }
@@ -437,14 +437,15 @@ export async function fetchAdminQuestions(contestId?: string): Promise<{
 export async function updateAdminQuestionAnswers(
   questionNumber: number,
   acceptedAnswers: string[],
-  contestId?: string
+  contestId?: string,
+  investigationAnswers?: Record<string, string[]>
 ): Promise<{
   question: AdminQuestionConfig;
 }> {
   const qs = contestId ? `?contest_id=${encodeURIComponent(contestId)}` : '';
   return apiFetch(`/api/admin/questions/${questionNumber}/answers${qs}`, {
     method: 'PUT',
-    body: JSON.stringify({ acceptedAnswers, contestId }),
+    body: JSON.stringify({ acceptedAnswers, contestId, investigationAnswers }),
   });
 }
 
@@ -458,9 +459,10 @@ export async function fetchAdminContests(): Promise<ContestInfo[]> {
   return data.contests;
 }
 
-export async function toggleAdminContest(id: string): Promise<ContestInfo> {
+export async function toggleAdminContest(id: string, isActive?: boolean): Promise<ContestInfo> {
   const data = await apiFetch<{ contest: ContestInfo }>(`/api/admin/contests/${id}/toggle`, {
     method: 'POST',
+    body: JSON.stringify(typeof isActive === 'boolean' ? { isActive } : {}),
   });
   return data.contest;
 }

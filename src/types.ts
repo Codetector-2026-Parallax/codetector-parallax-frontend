@@ -304,9 +304,26 @@ export interface AdminSubmissionRecord {
 
 export interface AdminQuestionConfig {
   id: number;
+  contest_id?: string;
   question_number: number;
   title: string;
+  story?: string;
   content: string;
+  target_database?: string;
+  case_dossier?: Record<string, any>;
+  investigations?: Array<{
+    index: number;
+    key: string;
+    title: string;
+    clue: string;
+    image?: string | null;
+    taskTitle: string;
+    taskDescription: string;
+    submissionPrompt: string;
+    submissionFormat: string;
+    acceptedAnswers: string[];
+    basePoints: number;
+  }>;
   base_points: number;
   accepted_answers: string[];
 }

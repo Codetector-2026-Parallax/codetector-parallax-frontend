@@ -33,6 +33,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   isLiveConnected = true,
   style,
   onSubmitAnswer,
+  onSelectRelatedTable,
   onRequestHint,
   requestingHintKey,
   isSidebarHidden,
@@ -794,6 +795,56 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               </div>
             </div>
 
+            {/* Database Tables Note (Bảng hiện có / Bảng mở thêm) */}
+            {Array.isArray(q.caseDossier?.related_tables) && q.caseDossier.related_tables.length > 0 && (
+              <div
+                data-testid="database-tables-note"
+                style={{
+                  marginTop: '10px',
+                  padding: '8px 12px',
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  border: '1px solid var(--border-color)',
+                  borderLeft: '3px solid var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  fontSize: '12px',
+                  fontFamily: 'var(--font-ui)',
+                }}
+              >
+                <strong
+                  style={{
+                    color: 'var(--color-ink)',
+                    fontWeight: 800,
+                    fontStyle: 'italic',
+                  }}
+                >
+                  {q.questionNumber === 1 ? 'Bảng hiện có:' : 'Bảng mở thêm:'}
+                </strong>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                  {q.caseDossier.related_tables.map((tbl: string) => (
+                    <button
+                      key={tbl}
+                      type="button"
+                      className="cp-mini-tag-btn"
+                      onClick={() => onSelectRelatedTable?.(tbl)}
+                      title={`Nhấn để định vị bảng ${tbl} trên sơ đồ ERD`}
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '2px 6px',
+                        cursor: onSelectRelatedTable ? 'pointer' : 'default',
+                      }}
+                    >
+                      {tbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Navigation Tabs Bar */}
             <div
               className="cp-tabs-list"
@@ -897,6 +948,20 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                           color: 'var(--color-dossier-ink)',
                         }}
                       />
+
+                      {Array.isArray(q.caseDossier?.related_tables) && q.caseDossier.related_tables.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: '12px',
+                            fontStyle: 'italic',
+                            fontSize: '14px',
+                            color: 'var(--color-dossier-ink)',
+                          }}
+                        >
+                          {q.questionNumber === 1 ? 'Bảng hiện có: ' : 'Bảng mở thêm: '}
+                          <strong>{q.caseDossier.related_tables.join(', ')}.</strong>
+                        </div>
+                      )}
 
                       {/* Fast-track button to active investigation */}
                       {q.investigations && q.investigations.length > 0 && (
