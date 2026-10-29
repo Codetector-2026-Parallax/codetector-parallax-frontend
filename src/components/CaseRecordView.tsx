@@ -21,6 +21,7 @@ interface CaseRecordViewProps {
   onSelectRelatedTable?: (tableName: string) => void;
   onNavigateQuestion: (questionNumber: number) => void;
   onRequestHint?: (questionNumber: number, hintType: 'LOW' | 'HIGH') => Promise<void>;
+  onActivateRiskMove?: (questionNumber: number) => Promise<void>;
   requestingHintKey?: string | null;
   isSidebarHidden?: boolean;
   onToggleSidebar?: () => void;
@@ -35,6 +36,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   onSubmitAnswer,
   onSelectRelatedTable,
   onRequestHint,
+  onActivateRiskMove,
   requestingHintKey,
   isSidebarHidden,
   onToggleSidebar,
@@ -533,7 +535,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 </div>
 
                 <div className="cp-hint-options-grid">
-                  {/* LOW HINT (-10 pts) */}
+                  {/* HINT 1 (-15 pts) */}
                   <button
                     type="button"
                     className={[
@@ -551,20 +553,20 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     onClick={() => onRequestHint(q.questionNumber, 'LOW')}
                   >
                     <div className="cp-hint-option-top">
-                      <span className="cp-hint-option-name">LOW HINT</span>
-                      <span className="cp-hint-option-penalty">-10 PTS</span>
+                      <span className="cp-hint-option-name">GỢI Ý 1</span>
+                      <span className="cp-hint-option-penalty">-15 PTS</span>
                     </div>
                     <div className="cp-hint-option-desc">
                       {lowHintReq
-                        ? `Đã kích hoạt (${lowHintReq.status}): Trừ 10 điểm vào Tổng điểm trừ. BTC sẽ bàn giao gợi ý thực tế.`
-                        : 'Gợi ý sơ bộ định hướng tư duy điều tra (trừ 10 điểm).'}
+                        ? `Đã kích hoạt (${lowHintReq.status}): Trừ 15 điểm trực tiếp vào điểm câu hỏi. BTC sẽ bàn giao gợi ý thực tế.`
+                        : 'Gợi ý 1 định hướng tư duy điều tra (trừ 15 điểm trực tiếp vào điểm câu hỏi).'}
                     </div>
                     {lowHintReq?.status === 'DELIVERED' && (
                       <span className="cp-hint-delivered-badge">✓ BTC ĐÃ GIAO GỢI Ý</span>
                     )}
                   </button>
 
-                  {/* HIGH HINT (-25 pts) */}
+                  {/* HINT 2 (-10 pts) */}
                   <button
                     type="button"
                     className={[
@@ -582,13 +584,13 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     onClick={() => onRequestHint(q.questionNumber, 'HIGH')}
                   >
                     <div className="cp-hint-option-top">
-                      <span className="cp-hint-option-name">HIGH HINT</span>
-                      <span className="cp-hint-option-penalty">-25 PTS</span>
+                      <span className="cp-hint-option-name">GỢI Ý 2</span>
+                      <span className="cp-hint-option-penalty">-10 PTS</span>
                     </div>
                     <div className="cp-hint-option-desc">
                       {highHintReq
-                        ? `Đã kích hoạt (${highHintReq.status}): Trừ 25 điểm vào Tổng điểm trừ. BTC sẽ bàn giao gợi ý thực tế.`
-                        : 'Gợi ý chuyên sâu với cấu trúc SQL chi tiết (trừ 25 điểm).'}
+                        ? `Đã kích hoạt (${highHintReq.status}): Trừ 10 điểm trực tiếp vào điểm câu hỏi. BTC sẽ bàn giao gợi ý thực tế.`
+                        : 'Gợi ý 2 chi tiết phương án giải quyết (trừ 10 điểm trực tiếp vào điểm câu hỏi).'}
                     </div>
                     {highHintReq?.status === 'DELIVERED' && (
                       <span className="cp-hint-delivered-badge">✓ BTC ĐÃ GIAO GỢI Ý</span>
@@ -704,7 +706,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     letterSpacing: '0.4px',
                   }}
                 >
-                  MẢNH GHÉP SỐ {q.questionNumber} / 3
+                  MẢNH GHÉP SỐ {q.questionNumber} / {q.targetDatabase?.startsWith('training') || q.targetDatabase === 'contestdb' ? 3 : 8}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {q.targetDatabase && (
@@ -794,6 +796,107 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Risk Move (Nước cờ mạo hiểm) Status / Activation Banner */}
+            {q.hasRiskMove ? (
+              <div
+                style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                  border: '1.5px solid #f59e0b',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '20px' }}>⚡</span>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '12px', color: '#b45309', textTransform: 'uppercase' }}>
+                      Nước cờ mạo hiểm đang kích hoạt
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--color-ink-muted)' }}>
+                      Hoàn thành chính xác để nhận <strong>x2 điểm thưởng ({q.basePoints * 2} PTS)</strong>. Nếu thất bại, nhận <strong>0 điểm</strong>.
+                    </div>
+                  </div>
+                </div>
+                <span
+                  className="cp-sticker-badge cp-sticker-badge-warning"
+                  style={{
+                    backgroundColor: '#fef3c7',
+                    color: '#b45309',
+                    borderColor: '#f59e0b',
+                    fontWeight: 800,
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                  }}
+                >
+                  ⚡ 2X ĐANG KÍCH HOẠT
+                </span>
+              </div>
+            ) : (q.canActivateRiskMove || (q.questionNumber >= 4 && q.status === 'NOT_DONE' && q.attemptsUsed === 0 && !q.targetDatabase?.startsWith('training') && q.targetDatabase !== 'contestdb')) ? (
+              <div
+                style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  border: '1.5px dashed #f59e0b',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '220px' }}>
+                  <span style={{ fontSize: '20px' }}>⚡</span>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '12px', color: '#b45309', textTransform: 'uppercase' }}>
+                      Nước cờ mạo hiểm (Risk Move)
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--color-ink-muted)' }}>
+                      Kích hoạt trước lần nộp đầu tiên: <strong>x2 điểm thưởng</strong> nếu đúng ({q.basePoints * 2} PTS), <strong>0 điểm</strong> nếu sai.
+                    </div>
+                  </div>
+                </div>
+                {onActivateRiskMove && (
+                  <button
+                    type="button"
+                    className="cp-mini-tag-btn"
+                    style={{
+                      backgroundColor: '#f59e0b',
+                      color: '#ffffff',
+                      borderColor: '#d97706',
+                      fontWeight: 800,
+                      fontSize: '11px',
+                      padding: '6px 12px',
+                      cursor: 'pointer',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    }}
+                    onClick={async () => {
+                      if (
+                        window.confirm(
+                          `XÁC NHẬN KÍCH HOẠT NƯỚC CỜ MẠO HIỂM?\n\n- Câu hỏi: Mảnh ghép số ${q.questionNumber}\n- Điểm nếu giải đúng: ${q.basePoints * 2} PTS (x2 điểm)\n- Điểm nếu giải sai hoặc hết lượt: 0 PTS\n\nLưu ý: Chỉ được dùng 1 lần trong suốt contest và không thể hoàn tác!`
+                        )
+                      ) {
+                        await onActivateRiskMove(q.questionNumber);
+                      }
+                    }}
+                  >
+                    ⚡ KÍCH HOẠT NƯỚC CỜ MẠO HIỂM
+                  </button>
+                )}
+              </div>
+            ) : null}
 
             {/* Database Tables Note (Bảng hiện có / Bảng mở thêm) */}
             {Array.isArray(q.caseDossier?.related_tables) && q.caseDossier.related_tables.length > 0 && (

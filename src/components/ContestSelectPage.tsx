@@ -152,7 +152,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
         {/* Top Banner (Synchronized with Codetector Parallax Dell 1996 Style) */}
         <header className="cp-top-banner">
           <div className="cp-banner-left">
-            <div className="cp-logo-tile" title="JSClub — Japanese Software Engineering Club">
+            <div className="cp-logo-tile" title="JSClub — Japanese Software Engineers Club">
               <img
                 src="/assets/codetector-logo.png"
                 alt="JSClub Logo"
@@ -161,7 +161,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
             </div>
             <div className="cp-brand-tag">
               <span className="cp-brand-club">JSCLUB CONTEST</span>
-              <span className="cp-brand-sub">Japanese Software Club</span>
+              <span className="cp-brand-sub">Japanese Software Engineers Club</span>
             </div>
           </div>
 

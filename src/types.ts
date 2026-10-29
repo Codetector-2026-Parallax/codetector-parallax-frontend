@@ -87,6 +87,7 @@ export interface QuestionSummaryItem {
   attemptsUsed: number;
   maxAttempts: number;
   hasRiskMove: boolean;
+  riskMoveActive?: boolean;
   gainedPoints: number;
   submissionPenalty: number;
   hintPenaltyPoints: number;
@@ -141,6 +142,7 @@ export interface QuestionDetailData {
     maxAttempts: number;
     remainingAttempts: number;
     hasRiskMove: boolean;
+  riskMoveActive?: boolean;
     canActivateRiskMove: boolean;
     submissionPenalty: number;
     hintPenaltyPoints: number;

@@ -26,7 +26,7 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
   onToggleHide,
 }) => {
   const completedCount = progress?.completedCount ?? 0;
-  const totalQuestions = progress?.totalQuestions ?? 3;
+  const totalQuestions = progress?.totalQuestions ?? (questions.length > 0 ? questions.length : 8);
   const pct = Math.min(100, Math.round((completedCount / totalQuestions) * 100));
 
   const renderStatusBadge = (q: QuestionSummaryItem) => {
@@ -202,6 +202,22 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 <div className="cp-question-item-top">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="cp-q-number-badge">Mảnh ghép số {q.questionNumber}</span>
+                    {(q.hasRiskMove || q.riskMoveActive) && (
+                      <span
+                        className="cp-sticker-badge cp-sticker-badge-warning"
+                        style={{
+                          backgroundColor: '#fef3c7',
+                          color: '#b45309',
+                          borderColor: '#f59e0b',
+                          fontWeight: 800,
+                          fontSize: '10px',
+                          padding: '1px 5px',
+                        }}
+                        title="Nước cờ mạo hiểm (2X điểm nếu đúng, 0 điểm nếu sai)"
+                      >
+                        ⚡ 2X
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>

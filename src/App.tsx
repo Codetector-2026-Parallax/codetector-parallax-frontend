@@ -874,6 +874,7 @@ export const App: React.FC = () => {
                   isLiveConnected={isLiveConnected}
                   onSubmitAnswer={handleSubmitAnswer}
                   onRequestHint={handleRequestHint}
+                  onActivateRiskMove={handleActivateRiskMove}
                   requestingHintKey={requestingHintKey}
                   onSelectRelatedTable={(tbl) => setHighlightedTable(tbl)}
                   onNavigateQuestion={(qNum) => setSelectedQ(qNum)}

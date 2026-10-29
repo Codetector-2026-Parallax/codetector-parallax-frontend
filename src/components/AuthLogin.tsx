@@ -51,7 +51,7 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
             </div>
             <div className="cp-brand-tag">
               <span className="cp-brand-club">JSCLUB CONTEST</span>
-              <span className="cp-brand-sub">Japanese Software Club</span>
+              <span className="cp-brand-sub">Japanese Software Engineers Club</span>
             </div>
           </div>
           <div className="cp-banner-center">

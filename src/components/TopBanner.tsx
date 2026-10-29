@@ -56,7 +56,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
     <header className="cp-top-banner">
       {/* Left: JSClub Logo */}
       <div className="cp-banner-left" style={{ minWidth: 0, flexShrink: 0 }}>
-        <div className="cp-logo-tile" title="JSClub — Japanese Software Engineering Club">
+        <div className="cp-logo-tile" title="JSClub — Japanese Software Engineers Club">
           <img
             src="/assets/codetector-logo.png"
             alt="JSClub Logo"
@@ -65,7 +65,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
         </div>
         <div className="cp-brand-tag">
           <span className="cp-brand-club">JSCLUB CONTEST</span>
-          <span className="cp-brand-sub">Japanese Software Club</span>
+          <span className="cp-brand-sub">Japanese Software Engineers Club</span>
         </div>
       </div>
 
