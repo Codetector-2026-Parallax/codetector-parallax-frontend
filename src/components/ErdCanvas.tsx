@@ -50,6 +50,20 @@ const PREFERRED_TABLE_GRID: Record<
   atm: { col: 3, row: 1, domain: 'FINANCE' },
   atmtransaction: { col: 3, row: 2, domain: 'FINANCE' },
 
+  // Parallax Chapter 4, 5, 7, 8 tables
+  powercontrollog: { col: 0, row: 3, domain: 'MUSEUM' },
+  ipsession: { col: 3, row: 3, domain: 'FINANCE' },
+  networkregistration: { col: 3, row: 4, domain: 'FINANCE' },
+
+  booking: { col: 4, row: 0, domain: 'MUSEUM' },
+  journeyleg: { col: 4, row: 1, domain: 'MUSEUM' },
+  vehiclelog: { col: 4, row: 2, domain: 'MUSEUM' },
+  flight: { col: 4, row: 3, domain: 'MUSEUM' },
+
+  ticket: { col: 4, row: 4, domain: 'MUSEUM' },
+  flightpassenger: { col: 4, row: 5, domain: 'MUSEUM' },
+  ticketevent: { col: 4, row: 6, domain: 'MUSEUM' },
+
   // Legacy MuniDB fallback mappings
   museum: { col: 0, row: 3, domain: 'MUSEUM' },
   room: { col: 0, row: 4, domain: 'MUSEUM' },
@@ -333,10 +347,54 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           <span
             className="cp-sticker-badge cp-erd-tables-badge"
             style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 5px', fontSize: '10px' }}
-            title="Live introspected MuniDB_Hard tables"
+            title="Live introspected database tables"
           >
-            {erd?.numberOfTables ?? 22} TABLES
+            {erd?.numberOfTables ?? 0} TABLES
           </span>
+
+          {unlockedDatabases && unlockedDatabases.length > 1 ? (
+            <select
+              value={activeDatabase || ''}
+              onChange={(e) => onSelectDatabase?.(e.target.value)}
+              className="cp-input"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '1px 6px',
+                height: '24px',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-ink)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '3px',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              aria-label="Select ERD Database"
+              title="Chuyển đổi database trên sơ đồ ERD"
+            >
+              {unlockedDatabases.map((db) => (
+                <option key={db} value={db}>
+                  🗄️ {db.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          ) : activeDatabase ? (
+            <span
+              className="cp-sticker-badge cp-erd-active-db-badge"
+              style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                padding: '2px 6px',
+                backgroundColor: 'var(--color-surface)',
+                border: '1px solid var(--border-color)',
+                flexShrink: 0,
+              }}
+              title="Database hiện tại của câu hỏi"
+            >
+              🗄️ {activeDatabase.toUpperCase()}
+            </span>
+          ) : null}
 
           <div
             className="cp-erd-key-legend"
