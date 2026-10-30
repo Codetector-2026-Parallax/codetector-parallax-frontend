@@ -12,6 +12,7 @@ interface MarkdownViewProps {
   inline?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  onImageClick?: (src: string, alt: string) => void;
 }
 
 export const MarkdownView: React.FC<MarkdownViewProps> = ({
@@ -19,6 +20,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
   inline = false,
   className = '',
   style,
+  onImageClick,
 }) => {
   const html = useMemo(() => {
     if (!content || typeof content !== 'string') return '';
@@ -31,6 +33,14 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
     }
   }, [content, inline]);
 
+  const handleContainerClick = (e: React.MouseEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName.toLowerCase() === 'img') {
+      const img = target as HTMLImageElement;
+      onImageClick?.(img.src, img.alt || 'Hình ảnh tư liệu');
+    }
+  };
+
   if (!html) return null;
 
   if (inline) {
@@ -38,6 +48,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
       <span
         className={`cp-markdown-inline ${className}`.trim()}
         style={style}
+        onClick={onImageClick ? handleContainerClick : undefined}
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
@@ -47,6 +58,7 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
     <div
       className={`cp-markdown ${className}`.trim()}
       style={style}
+      onClick={onImageClick ? handleContainerClick : undefined}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

@@ -1817,9 +1817,9 @@ textarea:focus-visible,
 
 /* 1. Persistent Question Sidebar */
 .cp-question-sidebar {
-  width: 285px;
-  min-width: 240px;
-  max-width: 380px;
+  width: 350px;
+  min-width: 330px;
+  max-width: 550px;
   background-color: var(--color-surface);
   display: flex;
   flex-direction: column;
@@ -2424,6 +2424,25 @@ textarea:focus-visible,
   border: none;
   border-top: 1px solid var(--border-color);
   margin: 12px 0;
+}
+
+.cp-markdown img,
+.cp-markdown-inline img {
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  display: block;
+  margin: 12px auto;
+  border: 1px solid var(--border-color);
+  background-color: var(--color-canvas);
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.15);
+  cursor: zoom-in;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cp-markdown img:hover,
+.cp-markdown-inline img:hover {
+  box-shadow: 3px 3px 0px var(--color-primary);
 }
 
 /* 3. Interactive ERD Viewer Column */

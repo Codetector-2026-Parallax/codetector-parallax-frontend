@@ -50,9 +50,9 @@ import type {
 } from './types';
 
 // Bounded pane dimension limits to guarantee components never override, eclipse, or squash each other
-const MIN_SIDEBAR_WIDTH = 290;
-const MAX_SIDEBAR_WIDTH = 460;
-const DEFAULT_SIDEBAR_WIDTH = 300;
+const MIN_SIDEBAR_WIDTH = 330;
+const MAX_SIDEBAR_WIDTH = 550;
+const DEFAULT_SIDEBAR_WIDTH = 350;
 
 const MIN_DOSSIER_WIDTH = 460;
 const MAX_DOSSIER_WIDTH = 1400;
@@ -415,7 +415,7 @@ export const App: React.FC = () => {
           });
         }
         if (autoSelectCurrent && data.progress?.currentQuestionNumber) {
-          const targetQ = Math.min(3, Math.max(1, data.progress.currentQuestionNumber));
+          const targetQ = Math.max(1, data.progress.currentQuestionNumber);
           setSelectedQ(targetQ);
         }
       } catch (err: any) {
@@ -484,7 +484,7 @@ export const App: React.FC = () => {
 
     const refreshRealtimeState = () => {
       lastRealtimeSyncRef.current = Date.now();
-      loadContestantOverview(false, true);
+      loadContestantOverview(false, false);
       loadSelectedQuestionDetail(selectedQRef.current, true);
     };
 
@@ -523,7 +523,7 @@ export const App: React.FC = () => {
               setActiveDatabase('');
               setShowContestSelectPage(true);
               showToast(
-                `⚠️ Đấu trường "${
+                `Đấu trường "${
                   payload.contestId === 'training' ? 'Huấn Luyện SQL' : 'Đại Án Parallax'
                 }" đã bị ${
                   payload.action === 'STOP' ? 'DỪNG & ĐẶT LẠI TIẾN ĐỘ' : 'TẠM DỪNG'
@@ -575,7 +575,7 @@ export const App: React.FC = () => {
         }
         setShowContestSelectPage(false);
         showToast(
-          `✓ Đang chuyển sang quản trị ${
+          `Đang chuyển sang quản trị ${
             contestId === 'training'
               ? 'Đấu Trường Huấn Luyện SQL'
               : 'Đại Án Parallax (Chính Thức)'
@@ -599,7 +599,7 @@ export const App: React.FC = () => {
       setSelectedQ(1);
       setShowContestSelectPage(false);
       showToast(
-        `✓ Đã vào ${
+        `Đã vào ${
           contestId === 'training'
             ? 'Đấu Trường Huấn Luyện SQL'
             : 'Đại Án Parallax (Chính Thức)'
@@ -634,7 +634,7 @@ export const App: React.FC = () => {
           ? `Hint (${hintType}) for Question ${questionNumber} already requested.`
           : `Hint activated (${hintType}: -${res.hint.suggestedPenalty} pts directly decreased). BTC will deliver the hint in real life.`
       );
-      await loadContestantOverview(false, true);
+      await loadContestantOverview(false, false);
       if (selectedQ === questionNumber) {
         await loadSelectedQuestionDetail(questionNumber, true);
       }
@@ -659,12 +659,8 @@ export const App: React.FC = () => {
       if (res?.activeDatabase) {
         setActiveDatabase(res.activeDatabase);
       }
-      showToast(
-        res.isCorrect
-          ? `✓ ${res.feedbackMessage}`
-          : `✕ ${res.feedbackMessage}`
-      );
-      await loadContestantOverview(false, true);
+      showToast(res.feedbackMessage);
+      await loadContestantOverview(false, false);
       await loadSelectedQuestionDetail(questionNumber, true);
       return {
         isCorrect: res.isCorrect,
@@ -681,9 +677,9 @@ export const App: React.FC = () => {
     try {
       await activateQuestionRiskMove(questionNumber);
       showToast(
-        `★ Activated Nước cờ mạo hiểm on Question ${questionNumber} (calculated on correct answer or 6/6 failed attempts)!`
+        `Activated Nước cờ mạo hiểm on Question ${questionNumber}!`
       );
-      await loadContestantOverview(false, true);
+      await loadContestantOverview(false, false);
       if (selectedQRef.current === questionNumber) {
         await loadSelectedQuestionDetail(questionNumber, true);
       }

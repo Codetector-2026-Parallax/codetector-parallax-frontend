@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { QuestionDetailData, QuestionInvestigationItem } from '../types';
 import { MarkdownView } from './MarkdownView';
+import { ImageViewerModal } from './ImageViewerModal';
 
 interface CaseRecordViewProps {
   detail: QuestionDetailData | null;
@@ -35,6 +36,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   style,
   onSubmitAnswer,
   onSelectRelatedTable,
+  onNavigateQuestion,
   onRequestHint,
   onActivateRiskMove,
   requestingHintKey,
@@ -51,6 +53,8 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   } | null>(null);
 
   const [enlargedImage, setEnlargedImage] = useState<{ src: string; title: string } | null>(null);
+  const [confirmingRiskMove, setConfirmingRiskMove] = useState<boolean>(false);
+  const [activatingRiskMove, setActivatingRiskMove] = useState<boolean>(false);
 
   const q = detail?.question;
   const currentInvIndex = q?.currentInvestigationIndex ?? 1;
@@ -64,6 +68,8 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
   useEffect(() => {
     setAnswerInputs({});
     setInstantFeedback(null);
+    setConfirmingRiskMove(false);
+    setActivatingRiskMove(false);
     const initialInv = q?.currentInvestigationIndex ?? 1;
     setActiveInvIndex(initialInv);
     if (q?.story || q?.content) {
@@ -96,11 +102,8 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
         });
         if (res.isCorrect) {
           setAnswerInputs((prev) => ({ ...prev, [invIndex]: '' }));
-          const nextInv = q.investigations?.find((item) => item.index === invIndex + 1);
-          if (nextInv) {
-            setActiveInvIndex(nextInv.index);
-            setActiveMainTab('investigations');
-          }
+          // Do not automatically advance to the next clue or question.
+          // Keep the contestant on the current clue view so they can review their result and manually navigate.
         }
       }
     } finally {
@@ -205,19 +208,19 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {isSolved ? (
               <span className="cp-sticker-badge cp-sticker-badge-success">
-                ✓ ĐÃ GIẢI QUYẾT (+{inv.earnedPoints || inv.basePoints} PTS)
+                ĐÃ GIẢI QUYẾT (+{inv.earnedPoints || inv.basePoints} PTS)
               </span>
             ) : isExhausted ? (
               <span className="cp-sticker-badge cp-sticker-badge-error">
-                ✕ HẾT LƯỢT THỬ (0 PTS)
+                HẾT LƯỢT THỬ (0 PTS)
               </span>
             ) : isLocked ? (
               <span className="cp-sticker-badge">
-                🔒 ĐANG KHÓA
+                ĐANG KHÓA
               </span>
             ) : (
               <span className="cp-sticker-badge cp-sticker-badge-running">
-                ● ĐANG ĐIỀU TRA ({inv.attemptsUsed}/6)
+                ĐANG ĐIỀU TRA ({inv.attemptsUsed}/6)
               </span>
             )}
           </div>
@@ -236,7 +239,6 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               lineHeight: 1.6,
             }}
           >
-            <div style={{ fontSize: '20px', marginBottom: '6px' }}>🔒</div>
             <strong>Nội dung {inv.title} đang được niêm phong.</strong>
             <div>
               Đội của bạn cần giải quyết hoặc hoàn thành lượt nộp của Manh mối trước đó để mở khóa hồ sơ này.
@@ -256,6 +258,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                   lineHeight: 1.7,
                   color: 'var(--color-ink)',
                 }}
+                onImageClick={(src, alt) => setEnlargedImage({ src, title: alt || `Vật chứng: ${inv.title}` })}
               />
             )}
 
@@ -263,39 +266,58 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
             {inv.image && (
               <figure
                 style={{
-                  margin: '8px 0',
-                  padding: '8px',
+                  margin: '12px 0',
+                  padding: '10px',
                   backgroundColor: 'var(--color-canvas)',
                   border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--shadow-surface, 2px 2px 0px rgba(0,0,0,0.15))',
                   borderRadius: '0px',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '8px',
                 }}
               >
-                <img
-                  src={inv.image}
-                  alt={`Vật chứng ${inv.title}`}
+                <div
                   style={{
-                    maxWidth: '100%',
-                    maxHeight: '280px',
-                    objectFit: 'contain',
+                    position: 'relative',
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    backgroundColor: 'var(--color-surface-elevated, #f4f3ea)',
                     border: '1px solid var(--border-color)',
-                    cursor: 'zoom-in',
+                    padding: '8px',
+                    cursor: 'pointer',
                   }}
                   onClick={() => setEnlargedImage({ src: inv.image!, title: `Vật chứng: ${inv.title}` })}
-                  title="Nhấn để phóng to vật chứng"
-                />
+                  title="Nhấn vào ảnh để xem chi tiết"
+                >
+                  <img
+                    src={inv.image}
+                    alt={`Vật chứng ${inv.title}`}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '520px',
+                      objectFit: 'contain',
+                      display: 'block',
+                    }}
+                  />
+                </div>
                 <figcaption
                   style={{
                     fontFamily: 'var(--font-ui)',
-                    fontSize: '11px',
-                    color: 'var(--color-muted)',
+                    fontSize: '12px',
+                    color: 'var(--color-ink)',
                     letterSpacing: '0.2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%',
+                    padding: '0 4px',
                   }}
                 >
-                  🔍 Hình ảnh vật chứng: {inv.title} (Nhấn ảnh để phóng to)
+                  <span>
+                    <strong>HÌNH ẢNH VẬT CHỨNG:</strong> {inv.title}
+                  </span>
                 </figcaption>
               </figure>
             )}
@@ -321,7 +343,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                   marginBottom: '4px',
                 }}
               >
-                📋 {inv.taskTitle || `Nhiệm vụ ${inv.key}`}
+                {inv.taskTitle || `Nhiệm vụ ${inv.key}`}
               </div>
               {inv.taskDescription && (
                 <MarkdownView
@@ -371,7 +393,6 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                   gap: '8px',
                 }}
               >
-                <span>{instantFeedback.isCorrect ? '✓' : '✕'}</span>
                 <span>{instantFeedback.message}</span>
               </div>
             )}
@@ -397,7 +418,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     color: 'var(--badge-success-text)',
                   }}
                 >
-                  🎯 ĐÁP ÁN CHÍNH THỨC ĐƯỢC XÁC THỰC
+                  ĐÁP ÁN CHÍNH THỨC ĐƯỢC XÁC THỰC
                 </div>
                 {inv.revealedAnswer && (
                   <div
@@ -436,8 +457,38 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     color: 'var(--badge-error-text)',
                   }}
                 >
-                  ✕ ĐÃ HẾT 6 LƯỢT THỬ — KHÔNG HOÀN THÀNH MANH MỐI NÀY (0 ĐIỂM)
+                  ĐÃ HẾT 6 LƯỢT THỬ — KHÔNG HOÀN THÀNH MANH MỐI NÀY (0 ĐIỂM)
                 </div>
+                {inv.revealedAnswer && (
+                  <div style={{ marginTop: '6px' }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-ui)',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        color: 'var(--badge-error-text)',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      ĐÁP ÁN CHÍNH THỨC CỦA MANH MỐI:
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        color: 'var(--color-ink)',
+                        backgroundColor: 'var(--color-canvas)',
+                        padding: '6px 10px',
+                        border: '1px solid var(--badge-error-border)',
+                        userSelect: 'all',
+                      }}
+                    >
+                      {inv.revealedAnswer}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : isCurrentActive ? (
               /* Active Submission Form for Current Investigation */
@@ -514,7 +565,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                       flexShrink: 0,
                     }}
                   >
-                    {submittingInv === inv.index ? 'ĐANG KIỂM TRA...' : '▶ NỘP ĐÁP ÁN'}
+                    {submittingInv === inv.index ? 'ĐANG KIỂM TRA...' : 'NỘP ĐÁP ÁN'}
                   </button>
                 </div>
               </form>
@@ -525,11 +576,11 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               <div className="cp-hint-box-container">
                 <div className="cp-hint-box-header">
                   <span className="cp-hint-box-title">
-                    💡 YÊU CẦU GỢI Ý ĐIỀU TRA ({inv.title})
+                    YÊU CẦU GỢI Ý ĐIỀU TRA ({inv.title})
                   </span>
                   {(lowHintReq || highHintReq) && (
                     <span className="cp-sticker-badge cp-sticker-badge-running">
-                      ĐÃ DÙNG {(lowHintReq ? 1 : 0) + (highHintReq ? 1 : 0)}/2 GỢI Ý
+                      ĐÃ DÙNG {(lowHintReq && lowHintReq.status !== 'UNDELIVERED' ? 1 : 0) + (highHintReq && highHintReq.status !== 'UNDELIVERED' ? 1 : 0)}/2 GỢI Ý
                     </span>
                   )}
                 </div>
@@ -540,12 +591,12 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     type="button"
                     className={[
                       'cp-hint-option-card',
-                      lowHintReq ? 'cp-hint-option-card-used' : '',
+                      lowHintReq && lowHintReq.status !== 'UNDELIVERED' ? 'cp-hint-option-card-used' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
                     disabled={
-                      Boolean(lowHintReq) ||
+                      Boolean(lowHintReq && lowHintReq.status !== 'UNDELIVERED') ||
                       requestingHintKey === `${q.questionNumber}-LOW` ||
                       isSolved ||
                       isExhausted
@@ -556,13 +607,35 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                       <span className="cp-hint-option-name">GỢI Ý 1</span>
                       <span className="cp-hint-option-penalty">-15 PTS</span>
                     </div>
-                    <div className="cp-hint-option-desc">
-                      {lowHintReq
-                        ? `Đã kích hoạt (${lowHintReq.status}): Trừ 15 điểm trực tiếp vào điểm câu hỏi. BTC sẽ bàn giao gợi ý thực tế.`
-                        : 'Gợi ý 1 định hướng tư duy điều tra (trừ 15 điểm trực tiếp vào điểm câu hỏi).'}
-                    </div>
+                    {lowHintReq?.status === 'REQUESTED' ? (
+                      <div className="cp-hint-option-desc">
+                        <strong>Đang chờ BTC xác nhận bàn giao:</strong> Điểm phạt tạm tính -15 điểm. Quản trị viên sẽ xác nhận bàn giao gợi ý thực tế tại bàn thi. Nếu không bàn giao, điểm sẽ được hoàn lại 100%.
+                      </div>
+                    ) : lowHintReq?.status === 'DELIVERED' ? (
+                      <div className="cp-hint-option-desc">
+                        <strong>BTC đã bàn giao gợi ý thực tế:</strong> Trừ 15 điểm chính thức vào điểm câu hỏi.
+                      </div>
+                    ) : lowHintReq?.status === 'UNDELIVERED' ? (
+                      <div className="cp-hint-option-desc">
+                        <strong>BTC xác nhận chưa bàn giao:</strong> Điểm phạt 15 điểm đã được hoàn lại đầy đủ cho đội. (Nhấn để gửi lại yêu cầu nếu cần).
+                      </div>
+                    ) : (
+                      <div className="cp-hint-option-desc">
+                        Gửi yêu cầu Gợi ý 1 định hướng tư duy điều tra (-15 điểm). BTC sẽ xác nhận bàn giao gợi ý thực tế và hoàn điểm nếu không bàn giao.
+                      </div>
+                    )}
+                    {lowHintReq?.status === 'REQUESTED' && (
+                      <span className="cp-hint-delivered-badge" style={{ backgroundColor: 'var(--tint-oxblood)', color: 'var(--color-ink)' }}>
+                        ĐANG CHỜ BTC BÀN GIAO THỰC TẾ
+                      </span>
+                    )}
                     {lowHintReq?.status === 'DELIVERED' && (
-                      <span className="cp-hint-delivered-badge">✓ BTC ĐÃ GIAO GỢI Ý</span>
+                      <span className="cp-hint-delivered-badge">BTC ĐÃ GIAO GỢI Ý THỰC TẾ</span>
+                    )}
+                    {lowHintReq?.status === 'UNDELIVERED' && (
+                      <span className="cp-hint-delivered-badge" style={{ backgroundColor: 'var(--surface-steel-light)', color: 'var(--color-muted)' }}>
+                        CHƯA BÀN GIAO (ĐÃ HOÀN ĐIỂM)
+                      </span>
                     )}
                   </button>
 
@@ -571,12 +644,12 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                     type="button"
                     className={[
                       'cp-hint-option-card',
-                      highHintReq ? 'cp-hint-option-card-used' : '',
+                      highHintReq && highHintReq.status !== 'UNDELIVERED' ? 'cp-hint-option-card-used' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
                     disabled={
-                      Boolean(highHintReq) ||
+                      Boolean(highHintReq && highHintReq.status !== 'UNDELIVERED') ||
                       requestingHintKey === `${q.questionNumber}-HIGH` ||
                       isSolved ||
                       isExhausted
@@ -587,15 +660,106 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                       <span className="cp-hint-option-name">GỢI Ý 2</span>
                       <span className="cp-hint-option-penalty">-10 PTS</span>
                     </div>
-                    <div className="cp-hint-option-desc">
-                      {highHintReq
-                        ? `Đã kích hoạt (${highHintReq.status}): Trừ 10 điểm trực tiếp vào điểm câu hỏi. BTC sẽ bàn giao gợi ý thực tế.`
-                        : 'Gợi ý 2 chi tiết phương án giải quyết (trừ 10 điểm trực tiếp vào điểm câu hỏi).'}
-                    </div>
+                    {highHintReq?.status === 'REQUESTED' ? (
+                      <div className="cp-hint-option-desc">
+                        <strong>Đang chờ BTC xác nhận bàn giao:</strong> Điểm phạt tạm tính -10 điểm. Quản trị viên sẽ xác nhận bàn giao gợi ý thực tế tại bàn thi. Nếu không bàn giao, điểm sẽ được hoàn lại 100%.
+                      </div>
+                    ) : highHintReq?.status === 'DELIVERED' ? (
+                      <div className="cp-hint-option-desc">
+                        <strong>BTC đã bàn giao gợi ý thực tế:</strong> Trừ 10 điểm chính thức vào điểm câu hỏi.
+                      </div>
+                    ) : highHintReq?.status === 'UNDELIVERED' ? (
+                      <div className="cp-hint-option-desc">
+                        <strong>BTC xác nhận chưa bàn giao:</strong> Điểm phạt 10 điểm đã được hoàn lại đầy đủ cho đội. (Nhấn để gửi lại yêu cầu nếu cần).
+                      </div>
+                    ) : (
+                      <div className="cp-hint-option-desc">
+                        Gửi yêu cầu Gợi ý 2 chi tiết phương án giải quyết (-10 điểm). BTC sẽ xác nhận bàn giao gợi ý thực tế và hoàn điểm nếu không bàn giao.
+                      </div>
+                    )}
+                    {highHintReq?.status === 'REQUESTED' && (
+                      <span className="cp-hint-delivered-badge" style={{ backgroundColor: 'var(--tint-oxblood)', color: 'var(--color-ink)' }}>
+                        ĐANG CHỜ BTC BÀN GIAO THỰC TẾ
+                      </span>
+                    )}
                     {highHintReq?.status === 'DELIVERED' && (
-                      <span className="cp-hint-delivered-badge">✓ BTC ĐÃ GIAO GỢI Ý</span>
+                      <span className="cp-hint-delivered-badge">BTC ĐÃ GIAO GỢI Ý THỰC TẾ</span>
+                    )}
+                    {highHintReq?.status === 'UNDELIVERED' && (
+                      <span className="cp-hint-delivered-badge" style={{ backgroundColor: 'var(--surface-steel-light)', color: 'var(--color-muted)' }}>
+                        CHƯA BÀN GIAO (ĐÃ HOÀN ĐIỂM)
+                      </span>
                     )}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Manual navigation controls when clue is resolved */}
+            {(isSolved || isExhausted) && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ fontSize: '12px', color: 'var(--color-ink)', fontFamily: 'var(--font-ui)' }}>
+                  {isSolved ? (
+                    <span style={{ color: 'var(--badge-success-text)', fontWeight: 700 }}>
+                      Manh mối này đã được giải quyết thành công!
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--badge-error-text)', fontWeight: 700 }}>
+                      Manh mối này đã kết thúc lượt thử.
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {q?.investigations?.find((item) => item.index === inv.index + 1)?.isUnlocked && (
+                    <button
+                      type="button"
+                      className="cp-btn-primary"
+                      onClick={() => {
+                        const nextItem = q?.investigations?.find((item) => item.index === inv.index + 1);
+                        if (nextItem) {
+                          setActiveInvIndex(nextItem.index);
+                          setActiveMainTab('investigations');
+                        }
+                      }}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-ui)',
+                      }}
+                    >
+                      CHUYỂN SANG MANH MỐI TIẾP THEO
+                    </button>
+                  )}
+                  {instantFeedback?.nextQ && (
+                    <button
+                      type="button"
+                      className="cp-btn-primary"
+                      onClick={() => onNavigateQuestion(instantFeedback.nextQ!)}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-ui)',
+                      }}
+                    >
+                      CHUYỂN SANG MẢNH GHÉP SỐ {instantFeedback.nextQ}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -797,105 +961,188 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
               </div>
             </div>
 
-            {/* Risk Move (Nước cờ mạo hiểm) Status / Activation Banner */}
+            {/* Risk Move (Nước cờ mạo hiểm) Status / Activation Banner - Minimalist Markdown Style */}
             {q.hasRiskMove ? (
               <div
                 style={{
                   marginTop: '10px',
-                  padding: '10px 14px',
-                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                  border: '1.5px solid #f59e0b',
-                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  borderLeft: '3px solid #d97706',
+                  borderTop: '1px solid var(--border-color)',
+                  borderRight: '1px solid var(--border-color)',
+                  borderBottom: '1px solid var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap',
+                  gap: '10px',
+                  fontSize: '12px',
+                  fontFamily: 'var(--font-ui)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '20px' }}>⚡</span>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '12px', color: '#b45309', textTransform: 'uppercase' }}>
-                      Nước cờ mạo hiểm đang kích hoạt
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-ink-muted)' }}>
-                      Hoàn thành chính xác để nhận <strong>x2 điểm thưởng ({q.basePoints * 2} PTS)</strong>. Nếu thất bại, nhận <strong>0 điểm</strong>.
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                  <div style={{ lineHeight: 1.4, minWidth: 0 }}>
+                    <strong style={{ color: '#b45309', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.3px' }}>
+                      NƯỚC CỜ MẠO HIỂM: ĐANG KÍCH HOẠT
+                    </strong>
+                    <span style={{ color: 'var(--color-muted)', marginLeft: '6px', fontSize: '11px' }}>
+                      — Điểm sẽ nhân đôi (x2 PTS) cho các manh mối giải đúng.
+                    </span>
                   </div>
                 </div>
                 <span
                   className="cp-sticker-badge cp-sticker-badge-warning"
                   style={{
                     backgroundColor: '#fef3c7',
-                    color: '#b45309',
-                    borderColor: '#f59e0b',
+                    color: '#92400e',
+                    border: '1px solid #d97706',
                     fontWeight: 800,
-                    fontSize: '11px',
-                    padding: '2px 8px',
+                    fontSize: '10px',
+                    padding: '1px 6px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                   }}
                 >
-                  ⚡ 2X ĐANG KÍCH HOẠT
+                  2X
                 </span>
               </div>
-            ) : (q.canActivateRiskMove || (q.questionNumber >= 4 && q.status === 'NOT_DONE' && q.attemptsUsed === 0 && !q.targetDatabase?.startsWith('training') && q.targetDatabase !== 'contestdb')) ? (
-              <div
-                style={{
-                  marginTop: '10px',
-                  padding: '10px 14px',
-                  backgroundColor: 'var(--color-surface-elevated)',
-                  border: '1.5px dashed #f59e0b',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '220px' }}>
-                  <span style={{ fontSize: '20px' }}>⚡</span>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '12px', color: '#b45309', textTransform: 'uppercase' }}>
-                      Nước cờ mạo hiểm (Risk Move)
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--color-ink-muted)' }}>
-                      Kích hoạt trước lần nộp đầu tiên: <strong>x2 điểm thưởng</strong> nếu đúng ({q.basePoints * 2} PTS), <strong>0 điểm</strong> nếu sai.
+            ) : Boolean(q.canActivateRiskMove) ? (
+              confirmingRiskMove ? (
+                /* Step 2: Confirmation / Cancellation Prompt */
+                <div
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 12px',
+                    backgroundColor: '#fffbeb',
+                    borderLeft: '3px solid #b45309',
+                    borderTop: '1px solid #d97706',
+                    borderRight: '1px solid #d97706',
+                    borderBottom: '1px solid #d97706',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    fontSize: '12px',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                    <div style={{ lineHeight: 1.4, minWidth: 0 }}>
+                      <strong style={{ color: '#92400e', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        XÁC NHẬN KÍCH HOẠT CHO MẢNH GHÉP SỐ {q.questionNumber}?
+                      </strong>
+                      <span style={{ color: '#78350f', marginLeft: '6px', fontSize: '11px' }}>
+                        — Nhân đôi điểm nếu đúng, 0 điểm nếu sai. Chỉ dùng 1 lần và không thể hoàn tác!
+                      </span>
                     </div>
                   </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      disabled={activatingRiskMove}
+                      onClick={async () => {
+                        if (!onActivateRiskMove) return;
+                        setActivatingRiskMove(true);
+                        try {
+                          await onActivateRiskMove(q.questionNumber);
+                        } finally {
+                          setActivatingRiskMove(false);
+                          setConfirmingRiskMove(false);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: '#d97706',
+                        color: '#ffffff',
+                        border: '1px solid #b45309',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        padding: '3px 10px',
+                        cursor: activatingRiskMove ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font-ui)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                      }}
+                    >
+                      {activatingRiskMove ? 'ĐANG KÍCH HOẠT...' : 'XÁC NHẬN'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={activatingRiskMove}
+                      onClick={() => setConfirmingRiskMove(false)}
+                      style={{
+                        backgroundColor: 'var(--color-canvas)',
+                        color: 'var(--color-ink)',
+                        border: '1px solid var(--border-color)',
+                        fontWeight: 700,
+                        fontSize: '11px',
+                        padding: '3px 10px',
+                        cursor: activatingRiskMove ? 'not-allowed' : 'pointer',
+                        fontFamily: 'var(--font-ui)',
+                      }}
+                    >
+                      HỦY
+                    </button>
+                  </div>
                 </div>
-                {onActivateRiskMove && (
-                  <button
-                    type="button"
-                    className="cp-mini-tag-btn"
-                    style={{
-                      backgroundColor: '#f59e0b',
-                      color: '#ffffff',
-                      borderColor: '#d97706',
-                      fontWeight: 800,
-                      fontSize: '11px',
-                      padding: '6px 12px',
-                      cursor: 'pointer',
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                    }}
-                    onClick={async () => {
-                      if (
-                        window.confirm(
-                          `XÁC NHẬN KÍCH HOẠT NƯỚC CỜ MẠO HIỂM?\n\n- Câu hỏi: Mảnh ghép số ${q.questionNumber}\n- Điểm nếu giải đúng: ${q.basePoints * 2} PTS (x2 điểm)\n- Điểm nếu giải sai hoặc hết lượt: 0 PTS\n\nLưu ý: Chỉ được dùng 1 lần trong suốt contest và không thể hoàn tác!`
-                        )
-                      ) {
-                        await onActivateRiskMove(q.questionNumber);
-                      }
-                    }}
-                  >
-                    ⚡ KÍCH HOẠT NƯỚC CỜ MẠO HIỂM
-                  </button>
-                )}
-              </div>
+              ) : (
+                /* Step 1: Minimalist Markdown Callout */
+                <div
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 12px',
+                    backgroundColor: 'var(--color-surface-elevated)',
+                    borderLeft: '3px solid #d97706',
+                    borderTop: '1px solid var(--border-color)',
+                    borderRight: '1px solid var(--border-color)',
+                    borderBottom: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                    fontSize: '12px',
+                    fontFamily: 'var(--font-ui)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                    <div style={{ lineHeight: 1.4, minWidth: 0 }}>
+                      <strong style={{ color: '#b45309', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                        NƯỚC CỜ MẠO HIỂM
+                      </strong>
+                      <span style={{ color: 'var(--color-muted)', marginLeft: '6px', fontSize: '11px' }}>
+                        (Khả dụng từ câu 4 • 1 lần duy nhất) — Nhân đôi điểm (x2 PTS) theo từng manh mối giải đúng, 0 điểm nếu thất bại.
+                      </span>
+                    </div>
+                  </div>
+
+                  {onActivateRiskMove && (
+                    <button
+                      type="button"
+                      className="cp-mini-tag-btn"
+                      onClick={() => setConfirmingRiskMove(true)}
+                      style={{
+                        backgroundColor: '#fef3c7',
+                        color: '#92400e',
+                        borderColor: '#d97706',
+                        fontWeight: 800,
+                        fontSize: '11px',
+                        padding: '3px 10px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      KÍCH HOẠT
+                    </button>
+                  )}
+                </div>
+              )
             ) : null}
 
             {/* Database Tables Note (Bảng hiện có / Bảng mở thêm) */}
@@ -967,7 +1214,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 className={`cp-tab-btn ${activeMainTab === 'story' ? 'cp-tab-btn-active' : ''}`}
                 onClick={() => setActiveMainTab('story')}
               >
-                <span>📜 DẪN TRUYỆN</span>
+                <span>DẪN TRUYỆN</span>
               </button>
 
               {/* Big Tab: All Investigations */}
@@ -978,7 +1225,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 className={`cp-tab-btn ${activeMainTab === 'investigations' ? 'cp-tab-btn-active' : ''}`}
                 onClick={() => setActiveMainTab('investigations')}
               >
-                <span>🔍 ĐIỀU TRA</span>
+                <span>ĐIỀU TRA</span>
                 <span
                   className="cp-tab-badge"
                   style={{
@@ -1006,7 +1253,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                 className={`cp-tab-btn ${activeMainTab === 'history' ? 'cp-tab-btn-active' : ''}`}
                 onClick={() => setActiveMainTab('history')}
               >
-                <span>📋 LỊCH SỬ NỘP</span>
+                <span>LỊCH SỬ NỘP</span>
                 <span style={{ fontSize: '10px', opacity: 0.85 }}>({detail.submissions?.length || 0})</span>
               </button>
             </div>
@@ -1041,7 +1288,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                           gap: '6px',
                         }}
                       >
-                        <span>📜 BỐI CẢNH VỤ ÁN</span>
+                        <span>BỐI CẢNH VỤ ÁN</span>
                       </div>
                       <MarkdownView
                         content={q.story || q.content}
@@ -1050,6 +1297,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                           lineHeight: 1.7,
                           color: 'var(--color-dossier-ink)',
                         }}
+                        onImageClick={(src, alt) => setEnlargedImage({ src, title: alt || 'Bối cảnh vụ án' })}
                       />
 
                       {Array.isArray(q.caseDossier?.related_tables) && q.caseDossier.related_tables.length > 0 && (
@@ -1094,7 +1342,7 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                           >
                             <span>
                               BẮT ĐẦU ĐIỀU TRA MANH MỐI{' '}
-                              {q.investigations.find((i) => i.index === currentInvIndex)?.key ?? 'A'} ➔
+                              {q.investigations.find((i) => i.index === currentInvIndex)?.key ?? 'A'}
                             </span>
                           </button>
                         </div>
@@ -1165,13 +1413,13 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
                             >
                               <span>MANH MỐI {inv.key}</span>
                               {isSolved ? (
-                                <span className="cp-tab-badge cp-tab-badge-done">✓</span>
+                                <span className="cp-tab-badge cp-tab-badge-done">XONG</span>
                               ) : isCurrentActive ? (
-                                <span className="cp-tab-badge cp-tab-badge-active">●</span>
+                                <span className="cp-tab-badge cp-tab-badge-active">LÀM</span>
                               ) : isExhausted ? (
-                                <span className="cp-tab-badge cp-tab-badge-failed">✕</span>
+                                <span className="cp-tab-badge cp-tab-badge-failed">HỎNG</span>
                               ) : isLocked ? (
-                                <span className="cp-tab-badge cp-tab-badge-locked">🔒</span>
+                                <span className="cp-tab-badge cp-tab-badge-locked">KHÓA</span>
                               ) : null}
                             </button>
                           );
@@ -1277,79 +1525,13 @@ export const CaseRecordView: React.FC<CaseRecordViewProps> = ({
         )}
       </div>
 
-      {/* Lightbox / Modal for Enlarged Evidence Images */}
+      {/* Lightbox / Modal for Enlarged Evidence Images with Full Interactive Zoom Controls */}
       {enlargedImage && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'var(--scrim-modal)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px',
-          }}
-          onClick={() => setEnlargedImage(null)}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              border: '2px solid var(--border-strong)',
-              borderRadius: '0px',
-              padding: '12px',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '6px',
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  color: 'var(--color-primary)',
-                  letterSpacing: '0.4px',
-                }}
-              >
-                {enlargedImage.title}
-              </span>
-              <button
-                type="button"
-                className="cp-mini-tag-btn"
-                onClick={() => setEnlargedImage(null)}
-                style={{ padding: '2px 8px', fontSize: '11px' }}
-              >
-                ✕ ĐÓNG
-              </button>
-            </div>
-            <img
-              src={enlargedImage.src}
-              alt={enlargedImage.title}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '75vh',
-                objectFit: 'contain',
-                border: '1px solid var(--border-color)',
-              }}
-            />
-          </div>
-        </div>
+        <ImageViewerModal
+          src={enlargedImage.src}
+          title={enlargedImage.title}
+          onClose={() => setEnlargedImage(null)}
+        />
       )}
     </section>
   );

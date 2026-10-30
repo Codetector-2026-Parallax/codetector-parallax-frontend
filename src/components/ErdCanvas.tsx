@@ -361,7 +361,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               className="cp-sticker-badge cp-sticker-badge-success"
               style={{ flexShrink: 0, whiteSpace: 'nowrap', padding: '2px 5px', fontSize: '10px' }}
             >
-              ✓ COPIED: {copiedSqlText}
+              COPIED: {copiedSqlText}
             </span>
           )}
         </div>
@@ -386,7 +386,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             title="Dim unrelated tables and highlight only direct FK neighbors"
             style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
-            🎯 ISOLATE
+            ISOLATE
           </button>
           <button
             type="button"
@@ -428,7 +428,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             title="Fit all 22 tables into view"
             style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
-            ⊡ FIT
+            FIT
           </button>
           <button
             type="button"
@@ -437,7 +437,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             title="Reset dragged table positions"
             style={{ padding: '3px 6px', fontSize: '10px', flexShrink: 0, whiteSpace: 'nowrap' }}
           >
-            ↺ RESET
+            RESET
           </button>
           <button
             type="button"
@@ -446,7 +446,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             onClick={() => setIsFullscreen((prev) => !prev)}
             title="Toggle Fullscreen ERD mode"
           >
-            {isFullscreen ? '✕ EXIT' : '⛶ FULLSCREEN'}
+            {isFullscreen ? 'EXIT' : 'FULLSCREEN'}
           </button>
         </div>
       </div>
@@ -505,7 +505,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               whiteSpace: 'nowrap',
             }}
           >
-            ⏳ Đang tải schema...
+            Đang tải schema...
           </span>
         )}
       </div>
@@ -624,22 +624,38 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               const y1 = srcPos.y + HEADER_HEIGHT + srcColIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
               const y2 = tgtPos.y + HEADER_HEIGHT + tgtColIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
 
+              const srcLeft = srcPos.x;
               const srcRight = srcPos.x + srcPos.width;
+              const tgtLeft = tgtPos.x;
               const tgtRight = tgtPos.x + tgtPos.width;
 
-              let x1 = srcRight;
-              let x2 = tgtPos.x;
-              if (srcPos.x > tgtRight) {
-                x1 = srcPos.x;
-                x2 = tgtRight;
-              } else if (Math.abs(srcPos.x - tgtPos.x) < 20) {
-                x1 = srcRight;
-                x2 = tgtRight;
-              }
+              let pathD = '';
 
-              const dx = Math.max(44, Math.abs(x2 - x1) * 0.45);
-              const c1x = x1 >= srcRight ? x1 + dx : x1 - dx;
-              const c2x = x2 <= tgtPos.x ? x2 - dx : x2 + dx;
+              // Case 1: Source table is to the left of Target table (clear horizontal gap)
+              if (srcRight + 16 <= tgtLeft) {
+                if (Math.abs(y1 - y2) < 2) {
+                  pathD = `M ${srcRight} ${y1} L ${tgtLeft} ${y2}`;
+                } else {
+                  const midX = Math.round((srcRight + tgtLeft) / 2);
+                  pathD = `M ${srcRight} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${tgtLeft} ${y2}`;
+                }
+              }
+              // Case 2: Source table is to the right of Target table (clear horizontal gap)
+              else if (srcLeft >= tgtRight + 16) {
+                if (Math.abs(y1 - y2) < 2) {
+                  pathD = `M ${srcLeft} ${y1} L ${tgtRight} ${y2}`;
+                } else {
+                  const midX = Math.round((srcLeft + tgtRight) / 2);
+                  pathD = `M ${srcLeft} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${tgtRight} ${y2}`;
+                }
+              }
+              // Case 3: Same column or horizontal overlap (tables stacked vertically)
+              else {
+                // Route around the right side with perpendicular right angles (orthogonal loop)
+                const stubOffset = 24 + ((idx * 14) % 48);
+                const loopX = Math.max(srcRight, tgtRight) + stubOffset;
+                pathD = `M ${srcRight} ${y1} L ${loopX} ${y1} L ${loopX} ${y2} L ${tgtRight} ${y2}`;
+              }
 
               const isRelatedToHighlight =
                 activeTableLower === srcKey || activeTableLower === tgtKey;
@@ -647,12 +663,15 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               return (
                 <path
                   key={`${rel.constraintName}-${idx}`}
-                  d={`M ${x1} ${y1} C ${c1x} ${y1}, ${c2x} ${y2}, ${x2} ${y2}`}
+                  d={pathD}
                   fill="none"
                   stroke={
                     isRelatedToHighlight ? 'var(--erd-line-active)' : 'var(--erd-line)'
                   }
                   strokeWidth={isRelatedToHighlight ? 2.6 : 1.35}
+                  strokeLinejoin="miter"
+                  strokeMiterlimit={4}
+                  strokeLinecap="square"
                   opacity={
                     activeTableLower && !isRelatedToHighlight
                       ? 0.2

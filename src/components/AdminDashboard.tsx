@@ -173,12 +173,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       await confirmAdminHintDelivery(hintId, delivered);
       showToast(
         delivered
-          ? `✓ Đã xác nhận phát manh mối #${hintId} cho đội thi.`
-          : `✕ Đã hủy phát manh mối #${hintId} (miễn trừ điểm phạt).`
+          ? `✓ Đã xác nhận bàn giao gợi ý #${hintId} cho đội thi (áp dụng điểm trừ).`
+          : `✓ Đã xác nhận CHƯA bàn giao gợi ý #${hintId} (điểm phạt đã hoàn lại cho đội).`
       );
       await loadAllAdminData(true);
     } catch (err: any) {
-      showToast(err?.message || 'Không thể cập nhật trạng thái phát manh mối');
+      showToast(err?.message || 'Không thể cập nhật trạng thái bàn giao gợi ý');
     }
   };
 
@@ -852,10 +852,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               style={{ fontSize: '10px' }}
                             >
                               {hr.status === 'DELIVERED'
-                                ? '✓ ĐÃ PHÁT'
+                                ? '✓ ĐÃ GIAO'
                                 : isPending
-                                ? '⏳ CHỜ PHÁT'
-                                : '✕ KHÔNG PHÁT'}
+                                ? '⏳ CHỜ GIAO THỰC TẾ'
+                                : '✕ CHƯA GIAO (ĐÃ HOÀN ĐIỂM)'}
                             </span>
                           </td>
                           <td>
@@ -866,47 +866,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                   className="cp-btn-primary"
                                   style={{ padding: '5px 10px', fontSize: '11px', fontWeight: 700 }}
                                   onClick={() => handleConfirmDelivery(hr.id, true)}
-                                  title="Xác nhận đã mang gợi ý đến bàn cho đội thi"
+                                  title="Xác nhận đã bàn giao gợi ý thực tế cho đội thi"
                                 >
-                                  ✓ ĐÃ PHÁT CHO ĐỘI
+                                  ✓ ĐÃ GIAO THỰC TẾ
                                 </button>
                                 <button
                                   type="button"
                                   className="cp-btn-secondary"
                                   style={{ padding: '5px 8px', fontSize: '11px' }}
                                   onClick={() => handleConfirmDelivery(hr.id, false)}
-                                  title="Đội thi hủy yêu cầu hoặc không nhận gợi ý (hoàn lại điểm trừ)"
+                                  title="Xác nhận chưa/không giao gợi ý trong thực tế (Hoàn lại 100% điểm phạt cho đội)"
                                 >
-                                  ✕ HỦY / HOÀN ĐIỂM
+                                  ✕ CHƯA GIAO (HOÀN ĐIỂM)
                                 </button>
                               </div>
                             ) : hr.status === 'DELIVERED' ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '11px', color: 'var(--color-muted)' }}>
-                                  Đã phát lúc {hr.decided_at ? new Date(hr.decided_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}
+                                  Đã giao lúc {hr.decided_at ? new Date(hr.decided_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—'}
                                 </span>
                                 <button
                                   type="button"
                                   className="cp-btn-secondary"
                                   style={{ padding: '2px 6px', fontSize: '10px' }}
-                                  title="Đổi lại trạng thái chờ phát nếu bấm nhầm"
+                                  title="Đổi thành chưa giao thực tế và hoàn trả điểm phạt cho đội thi"
                                   onClick={() => handleConfirmDelivery(hr.id, false)}
                                 >
-                                  ↺ Hoàn tác
+                                  ✕ Chưa giao (Hoàn điểm)
                                 </button>
                               </div>
                             ) : (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <span style={{ fontSize: '11px', color: 'var(--color-muted)' }}>
-                                  Đã miễn trừ (0 điểm)
+                                  Đã hoàn điểm (0 pts phạt)
                                 </span>
                                 <button
                                   type="button"
                                   className="cp-btn-primary"
                                   style={{ padding: '2px 6px', fontSize: '10px' }}
+                                  title="Xác nhận đã giao thực tế và áp dụng điểm trừ"
                                   onClick={() => handleConfirmDelivery(hr.id, true)}
                                 >
-                                  ✓ Phát lại
+                                  ✓ Đã giao thực tế
                                 </button>
                               </div>
                             )}

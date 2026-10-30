@@ -98,13 +98,13 @@ export const TopBanner: React.FC<TopBannerProps> = ({
               className="cp-sticker-badge cp-sticker-badge-error"
               title="Total point deductions from retries, hints, and penalties"
             >
-              <span>⚠️ PENALTY: -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
+              <span>PENALTY: -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
             </div>
             <div
               className="cp-sticker-badge cp-sticker-badge-score"
               title="Current score held by the team"
             >
-              <span>🏆 {Number(scoreSummary.score ?? scoreSummary.finalScore) || 0} PTS</span>
+              <span>{Number(scoreSummary.score ?? scoreSummary.finalScore) || 0} PTS</span>
             </div>
           </div>
         )}
@@ -124,7 +124,6 @@ export const TopBanner: React.FC<TopBannerProps> = ({
               backgroundColor: activeContestId === 'training' ? 'var(--tint-slate)' : 'var(--tint-brass)',
             }}
           >
-            <span>{activeContestId === 'training' ? '🛠️' : '🏛️'}</span>
             <span>{activeContestId === 'training' ? 'HUẤN LUYỆN' : 'CHÍNH THỨC'}</span>
             <span style={{ fontSize: '9px', opacity: 0.8 }}>[ĐỔI]</span>
           </button>
@@ -209,7 +208,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
                   <div className="cp-profile-meta-row">
                     <span>Current Score:</span>
                     <strong style={{ color: 'var(--color-primary)', fontSize: '13px' }}>
-                      🏆 {scoreSummary.score ?? scoreSummary.finalScore} pts
+                      {scoreSummary.score ?? scoreSummary.finalScore} pts
                     </strong>
                   </div>
                 </>
@@ -225,7 +224,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
                     onOpenContestSelect();
                   }}
                 >
-                  ⇆ ĐỔI ĐẤU TRƯỜNG
+                  ĐỔI ĐẤU TRƯỜNG
                 </button>
               )}
 
@@ -251,7 +250,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
                 }}
                 data-testid="logout-button"
               >
-                ⎋ LOGOUT
+                LOGOUT
               </button>
             </div>
           </div>

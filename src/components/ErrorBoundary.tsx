@@ -62,7 +62,7 @@ export class ErrorBoundary extends Component<Props, State> {
               marginBottom: '8px',
             }}
           >
-            <span>⚠ PANEL RENDER ERROR ({this.props.panelName.toUpperCase()})</span>
+            <span>PANEL RENDER ERROR ({this.props.panelName.toUpperCase()})</span>
             <button
               type="button"
               className="cp-mini-tag-btn"

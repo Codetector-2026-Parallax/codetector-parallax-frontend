@@ -33,17 +33,17 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
     if (!q.isUnlocked) {
       return (
         <span className="cp-sticker-badge" title="Hoàn thành hồ sơ trước đó để mở khóa">
-          🔒 KHÓA
+          KHÓA
         </span>
       );
     }
     if (q.status === 'DONE') {
-      return <span className="cp-sticker-badge cp-sticker-badge-success">✓ XONG</span>;
+      return <span className="cp-sticker-badge cp-sticker-badge-success">XONG</span>;
     }
     if (q.status === 'FAILED') {
-      return <span className="cp-sticker-badge cp-sticker-badge-error">✕ KẾT THÚC</span>;
+      return <span className="cp-sticker-badge cp-sticker-badge-error">KẾT THÚC</span>;
     }
-    return <span className="cp-sticker-badge cp-sticker-badge-running">● ĐANG LÀM</span>;
+    return <span className="cp-sticker-badge cp-sticker-badge-running">ĐANG LÀM</span>;
   };
 
   return (
@@ -113,7 +113,7 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 letterSpacing: '0.3px',
               }}
             >
-              ⚠️ TỔNG ĐIỂM TRỪ
+              TỔNG ĐIỂM TRỪ
             </span>
             <span
               className="cp-score-cell-val"
@@ -144,7 +144,7 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 letterSpacing: '0.3px',
               }}
             >
-              🏆 ĐIỂM HIỆN TẠI
+              ĐIỂM HIỆN TẠI
             </span>
             <span
               className="cp-score-cell-val"
@@ -199,28 +199,35 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                 }}
               >
                 {/* Top Meta Row: Q# + Points Badge + Status Badge */}
-                <div className="cp-question-item-top">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className="cp-q-number-badge">Mảnh ghép số {q.questionNumber}</span>
+                <div className="cp-question-item-top" style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <span className="cp-q-number-badge" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      Mảnh ghép số {q.questionNumber}
+                    </span>
                     {(q.hasRiskMove || q.riskMoveActive) && (
                       <span
                         className="cp-sticker-badge cp-sticker-badge-warning"
                         style={{
                           backgroundColor: '#fef3c7',
-                          color: '#b45309',
-                          borderColor: '#f59e0b',
+                          color: '#92400e',
+                          border: '1px solid #d97706',
                           fontWeight: 800,
                           fontSize: '10px',
                           padding: '1px 5px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
                         }}
-                        title="Nước cờ mạo hiểm (2X điểm nếu đúng, 0 điểm nếu sai)"
+                        title="Nước cờ mạo hiểm (2X điểm các manh mối hoàn thành)"
                       >
-                        ⚡ 2X
+                        2X
                       </span>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0, whiteSpace: 'nowrap' }}>
                     {q.status === 'DONE' ? (
                       <span
                         className="cp-sticker-badge cp-sticker-badge-success"
@@ -331,7 +338,7 @@ export const QuestionSidebar: React.FC<QuestionSidebarProps> = ({
                                     : 'Đang điều tra'
                             }`}
                           >
-                            {inv.key}: {isInvDone ? '✓' : isInvFailed ? '✕' : isInvLocked ? '🔒' : '●'}
+                            {inv.key}: {isInvDone ? 'XONG' : isInvFailed ? 'HỎNG' : isInvLocked ? 'KHÓA' : 'LÀM'}
                           </span>
                         );
                       })
