@@ -21,7 +21,7 @@ interface NodePosition {
   height: number;
 }
 
-type DomainKey = 'ALL' | 'MUSEUM' | 'PARKING' | 'PERSON' | 'FINANCE';
+type DomainKey = 'ALL' | 'MUSEUM' | 'PARKING' | 'PERSON' | 'FINANCE' | 'INCIDENT' | 'TRANSIT' | 'AVIATION';
 
 const NODE_WIDTH = 248;
 const HEADER_HEIGHT = 28;
@@ -29,55 +29,61 @@ const ROW_HEIGHT = 22;
 
 /**
  * Deterministic investigative layout for the Parallax chapter tables and legacy MuniDB tables.
+ * Strictly mirrors domain groupings from assets/erd.pdf:
+ * - Chặng 1: Ngân hàng & Giao dịch (Col 0), Xe thuê & Hồ sơ người (Col 1), Cuộc gọi & Bảo tàng (Col 2)
+ * - Chặng 2: Sự cố & Dấu vết mạng (Col 3), Đặt chỗ & Phương tiện (Col 4), Chuyến bay & Vé (Col 5)
  */
 const PREFERRED_TABLE_GRID: Record<
   string,
   { col: number; row: number; domain: Exclude<DomainKey, 'ALL'> }
 > = {
-  // Parallax Chapter 1, 2, 3 tables
-  vehicle: { col: 0, row: 0, domain: 'MUSEUM' },
-  museumvisit: { col: 0, row: 1, domain: 'MUSEUM' },
-  museumevent: { col: 0, row: 2, domain: 'MUSEUM' },
+  // Page 1 (Chặng 1) Domain 1: Ngân hàng và Giao dịch
+  bankbranch: { col: 0, row: 0, domain: 'FINANCE' },
+  atm: { col: 0, row: 1, domain: 'FINANCE' },
+  atmtransaction: { col: 0, row: 2, domain: 'FINANCE' },
 
-  person: { col: 1, row: 0, domain: 'PERSON' },
-  phonecall: { col: 1, row: 1, domain: 'PERSON' },
-  callevidence: { col: 1, row: 2, domain: 'PERSON' },
+  // Page 1 (Chặng 1) Domain 2: Xe thuê và Hồ sơ người
+  rentalagency: { col: 1, row: 0, domain: 'PERSON' },
+  vehicle: { col: 1, row: 1, domain: 'PERSON' },
+  rental: { col: 1, row: 2, domain: 'PERSON' },
+  person: { col: 1, row: 3, domain: 'PERSON' },
 
-  rental: { col: 2, row: 0, domain: 'PERSON' },
-  rentalagency: { col: 2, row: 1, domain: 'PERSON' },
+  // Page 1 (Chặng 1) Domain 3: Cuộc gọi và Bảo tàng
+  phonecall: { col: 2, row: 0, domain: 'MUSEUM' },
+  callevidence: { col: 2, row: 1, domain: 'MUSEUM' },
+  museumvisit: { col: 2, row: 2, domain: 'MUSEUM' },
+  museumevent: { col: 2, row: 3, domain: 'MUSEUM' },
 
-  bankbranch: { col: 3, row: 0, domain: 'FINANCE' },
-  atm: { col: 3, row: 1, domain: 'FINANCE' },
-  atmtransaction: { col: 3, row: 2, domain: 'FINANCE' },
+  // Page 2 (Chặng 2) Domain 1: C4 Sự cố và Dấu vết mạng
+  powercontrollog: { col: 3, row: 0, domain: 'INCIDENT' },
+  ipsession: { col: 3, row: 1, domain: 'INCIDENT' },
+  networkregistration: { col: 3, row: 2, domain: 'INCIDENT' },
 
-  // Parallax Chapter 4, 5, 7, 8 tables
-  powercontrollog: { col: 0, row: 3, domain: 'MUSEUM' },
-  ipsession: { col: 3, row: 3, domain: 'FINANCE' },
-  networkregistration: { col: 3, row: 4, domain: 'FINANCE' },
+  // Page 2 (Chặng 2) Domain 2: C5 Đặt chỗ và Phương tiện
+  booking: { col: 4, row: 0, domain: 'TRANSIT' },
+  journeyleg: { col: 4, row: 1, domain: 'TRANSIT' },
+  vehiclelog: { col: 4, row: 2, domain: 'TRANSIT' },
 
-  booking: { col: 4, row: 0, domain: 'MUSEUM' },
-  journeyleg: { col: 4, row: 1, domain: 'MUSEUM' },
-  vehiclelog: { col: 4, row: 2, domain: 'MUSEUM' },
-  flight: { col: 4, row: 3, domain: 'MUSEUM' },
-
-  ticket: { col: 4, row: 4, domain: 'MUSEUM' },
-  flightpassenger: { col: 4, row: 5, domain: 'MUSEUM' },
-  ticketevent: { col: 4, row: 6, domain: 'MUSEUM' },
+  // Page 2 (Chặng 2) Domain 3: C7 và C8 Chuyến bay và Vé
+  flight: { col: 5, row: 0, domain: 'AVIATION' },
+  ticket: { col: 5, row: 1, domain: 'AVIATION' },
+  flightpassenger: { col: 5, row: 2, domain: 'AVIATION' },
+  ticketevent: { col: 5, row: 3, domain: 'AVIATION' },
 
   // Legacy MuniDB fallback mappings
   museum: { col: 0, row: 3, domain: 'MUSEUM' },
   room: { col: 0, row: 4, domain: 'MUSEUM' },
   artifact: { col: 0, row: 5, domain: 'MUSEUM' },
   theft_report: { col: 0, row: 6, domain: 'MUSEUM' },
-  museum_ticket: { col: 1, row: 3, domain: 'MUSEUM' },
-  museum_log: { col: 1, row: 4, domain: 'MUSEUM' },
-  carpark: { col: 1, row: 5, domain: 'PARKING' },
-  camera_device: { col: 1, row: 6, domain: 'PARKING' },
-  carpark_history: { col: 1, row: 7, domain: 'PARKING' },
-  witness_statement: { col: 2, row: 2, domain: 'PERSON' },
-  driver_license: { col: 2, row: 3, domain: 'PERSON' },
-  car: { col: 2, row: 4, domain: 'PERSON' },
-  carrental: { col: 2, row: 5, domain: 'PERSON' },
+  museum_ticket: { col: 1, row: 4, domain: 'MUSEUM' },
+  museum_log: { col: 1, row: 5, domain: 'MUSEUM' },
+  carpark: { col: 1, row: 6, domain: 'PARKING' },
+  camera_device: { col: 1, row: 7, domain: 'PARKING' },
+  carpark_history: { col: 1, row: 8, domain: 'PARKING' },
+  witness_statement: { col: 2, row: 4, domain: 'PERSON' },
+  driver_license: { col: 2, row: 5, domain: 'PERSON' },
+  car: { col: 2, row: 6, domain: 'PERSON' },
+  carrental: { col: 2, row: 7, domain: 'PERSON' },
   sim_registration: { col: 3, row: 3, domain: 'FINANCE' },
   call_log: { col: 3, row: 4, domain: 'FINANCE' },
   bank_account: { col: 3, row: 5, domain: 'FINANCE' },
@@ -122,17 +128,60 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
   const tables = erd?.tables ?? [];
   const relationships = erd?.relationships ?? [];
 
-  // Calculate base positions + custom user drag offsets for all 22 tables
+  // Calculate base positions + custom user drag offsets for all chapter tables
   const basePositions = useMemo(() => {
     const map = new Map<string, NodePosition>();
-    const colOffsets = [28, 326, 624, 922, 1220];
-    const colHeights = [28, 28, 28, 28, 28];
+    const tableKeys = new Set(tables.map((t) => t.tableName.toLowerCase()));
+    const isChapter2 = tableKeys.has('powercontrollog') || tableKeys.has('booking') || tableKeys.has('flight') || tableKeys.has('ticket');
+
+    if (isChapter2) {
+      // Deterministic 4-column x 3-row grid strictly matching assets/erd.pdf Page 2
+      const c2Grid: Record<string, { col: number; row: number }> = {
+        museumevent: { col: 0, row: 0 },
+        powercontrollog: { col: 1, row: 0 },
+        ipsession: { col: 2, row: 0 },
+        networkregistration: { col: 3, row: 0 },
+
+        booking: { col: 0, row: 1 },
+        journeyleg: { col: 1, row: 1 },
+        vehicle: { col: 2, row: 1 },
+        vehiclelog: { col: 3, row: 1 },
+
+        flight: { col: 0, row: 2 },
+        ticket: { col: 1, row: 2 },
+        flightpassenger: { col: 2, row: 2 },
+        ticketevent: { col: 3, row: 2 },
+      };
+
+      const colOffsets = [28, 308, 588, 868];
+      const rowY = [28, 250, 500];
+
+      for (const tbl of tables) {
+        const key = tbl.tableName.toLowerCase();
+        const pref = c2Grid[key] ?? { col: 0, row: 3 };
+        const nodeHeight = HEADER_HEIGHT + tbl.columns.length * ROW_HEIGHT + 6;
+        const x = colOffsets[Math.min(pref.col, colOffsets.length - 1)];
+        const y = rowY[pref.row] ?? 740;
+
+        map.set(key, {
+          x,
+          y,
+          width: NODE_WIDTH,
+          height: nodeHeight,
+        });
+      }
+      return map;
+    }
+
+    // Default Chặng 1 / Legacy layout
+    const colOffsets = [28, 308, 588, 868];
+    const colHeights = [28, 28, 28, 28];
 
     const sortedTables = [...tables].sort((a, b) => {
       const posA = PREFERRED_TABLE_GRID[a.tableName.toLowerCase()];
       const posB = PREFERRED_TABLE_GRID[b.tableName.toLowerCase()];
-      const colA = posA?.col ?? 4;
-      const colB = posB?.col ?? 4;
+      const colA = posA ? Math.min(posA.col, colOffsets.length - 1) : 3;
+      const colB = posB ? Math.min(posB.col, colOffsets.length - 1) : 3;
       if (colA !== colB) return colA - colB;
       return (posA?.row ?? 99) - (posB?.row ?? 99);
     });
@@ -140,9 +189,9 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
     for (const tbl of sortedTables) {
       const key = tbl.tableName.toLowerCase();
       const pref = PREFERRED_TABLE_GRID[key];
-      const colIdx = pref ? pref.col : 4;
+      const colIdx = pref ? Math.min(pref.col, colOffsets.length - 1) : 3;
       const nodeHeight = HEADER_HEIGHT + tbl.columns.length * ROW_HEIGHT + 6;
-      const x = colOffsets[colIdx] ?? 1220;
+      const x = colOffsets[colIdx] ?? 868;
       const y = colHeights[colIdx];
 
       map.set(key, {
@@ -401,7 +450,7 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '3px',
+              gap: '4px',
               fontFamily: 'var(--font-ui)',
               fontSize: '10px',
               fontWeight: 700,
@@ -412,6 +461,26 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           >
             <span className="cp-key-badge cp-key-pk">PK</span>
             <span className="cp-key-badge cp-key-fk">FK</span>
+            <span
+              className="cp-key-badge"
+              style={{
+                backgroundColor: 'transparent',
+                border: '1px solid var(--border-color)',
+                color: 'var(--color-muted)',
+              }}
+              title="Khóa duy nhất (Unique)"
+            >
+              UQ
+            </span>
+            <span style={{ fontSize: '9px', opacity: 0.9, marginLeft: '4px' }} title="Nét liền: Khóa ngoại SQL">
+              ── SQL FK
+            </span>
+            <span
+              style={{ fontSize: '9px', opacity: 0.9, marginLeft: '3px', color: '#f59e0b' }}
+              title="Nét đứt: Đối chiếu nghiệp vụ theo erd.pdf"
+            >
+              ┄ LOGICAL
+            </span>
           </div>
 
           {copiedSqlText && (
@@ -618,15 +687,15 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: '0 0',
-            width: '1500px',
-            height: '1300px',
+            width: '1750px',
+            height: '1350px',
             position: 'relative',
           }}
         >
           {/* SVG Relationship Lines Layer */}
           <svg
-            width="1500"
-            height="1300"
+            width="1750"
+            height="1350"
             style={{
               position: 'absolute',
               inset: 0,
@@ -654,6 +723,26 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
                 orient="auto"
               >
                 <path d="M0,0 L9,4.5 L0,9 Z" fill="var(--erd-line-active)" />
+              </marker>
+              <marker
+                id="erd-arrow-logical"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="4"
+                orient="auto"
+              >
+                <path d="M0,0 L8,4 L0,8 Z" fill="#d97706" />
+              </marker>
+              <marker
+                id="erd-arrow-logical-active"
+                markerWidth="9"
+                markerHeight="9"
+                refX="8"
+                refY="4.5"
+                orient="auto"
+              >
+                <path d="M0,0 L9,4.5 L0,9 Z" fill="#fbbf24" />
               </marker>
             </defs>
 
@@ -688,59 +777,116 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
               const tgtRight = tgtPos.x + tgtPos.width;
 
               let pathD = '';
+              let midX = 0;
+              let midY = 0;
 
+              // Self-referential loop (e.g. Ticket.PreviousTicketId -> Ticket)
+              if (srcKey === tgtKey) {
+                const loopOffset = 36 + ((idx * 8) % 20);
+                const loopX = srcRight + loopOffset;
+                pathD = `M ${srcRight} ${y1} L ${loopX} ${y1} L ${loopX} ${y2} L ${srcRight} ${y2}`;
+                midX = loopX + 10;
+                midY = Math.round((y1 + y2) / 2);
+              }
               // Case 1: Source table is to the left of Target table (clear horizontal gap)
-              if (srcRight + 16 <= tgtLeft) {
+              else if (srcRight + 16 <= tgtLeft) {
+                midX = Math.round((srcRight + tgtLeft) / 2);
+                midY = Math.round((y1 + y2) / 2);
                 if (Math.abs(y1 - y2) < 2) {
                   pathD = `M ${srcRight} ${y1} L ${tgtLeft} ${y2}`;
                 } else {
-                  const midX = Math.round((srcRight + tgtLeft) / 2);
                   pathD = `M ${srcRight} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${tgtLeft} ${y2}`;
                 }
               }
               // Case 2: Source table is to the right of Target table (clear horizontal gap)
               else if (srcLeft >= tgtRight + 16) {
+                midX = Math.round((srcLeft + tgtRight) / 2);
+                midY = Math.round((y1 + y2) / 2);
                 if (Math.abs(y1 - y2) < 2) {
                   pathD = `M ${srcLeft} ${y1} L ${tgtRight} ${y2}`;
                 } else {
-                  const midX = Math.round((srcLeft + tgtRight) / 2);
                   pathD = `M ${srcLeft} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${tgtRight} ${y2}`;
                 }
               }
               // Case 3: Same column or horizontal overlap (tables stacked vertically)
               else {
-                // Route around the right side with perpendicular right angles (orthogonal loop)
                 const stubOffset = 24 + ((idx * 14) % 48);
                 const loopX = Math.max(srcRight, tgtRight) + stubOffset;
                 pathD = `M ${srcRight} ${y1} L ${loopX} ${y1} L ${loopX} ${y2} L ${tgtRight} ${y2}`;
+                midX = loopX;
+                midY = Math.round((y1 + y2) / 2);
               }
 
+              const isLogical = rel.relationshipType === 'LOGICAL';
               const isRelatedToHighlight =
                 activeTableLower === srcKey || activeTableLower === tgtKey;
 
+              const strokeColor = isLogical
+                ? (isRelatedToHighlight ? '#fbbf24' : '#d97706')
+                : (isRelatedToHighlight ? 'var(--erd-line-active)' : 'var(--erd-line)');
+              const strokeWidth = isRelatedToHighlight ? 2.5 : (isLogical ? 1.6 : 1.35);
+              const markerEnd = isLogical
+                ? (isRelatedToHighlight ? 'url(#erd-arrow-logical-active)' : 'url(#erd-arrow-logical)')
+                : (isRelatedToHighlight ? 'url(#erd-arrow-active)' : 'url(#erd-arrow)');
+
+              const badgeText = rel.cardinality || (isLogical ? 'LOGICAL' : '1:N');
+              const badgeWidth = Math.max(26, badgeText.length * 6 + 8);
+              const tooltipText = `${rel.relationshipType === 'LOGICAL' ? '[Nét đứt / Đối chiếu nghiệp vụ]' : '[Nét liền / Khóa ngoại SQL]'} ${rel.sourceTable}.${rel.sourceColumn} -> ${rel.targetTable}.${rel.targetColumn} (${rel.cardinality || '1:N'})${rel.description ? `\n${rel.description}` : ''}`;
+
               return (
-                <path
-                  key={`${rel.constraintName}-${idx}`}
-                  d={pathD}
-                  fill="none"
-                  stroke={
-                    isRelatedToHighlight ? 'var(--erd-line-active)' : 'var(--erd-line)'
-                  }
-                  strokeWidth={isRelatedToHighlight ? 2.6 : 1.35}
-                  strokeLinejoin="miter"
-                  strokeMiterlimit={4}
-                  strokeLinecap="square"
-                  opacity={
-                    activeTableLower && !isRelatedToHighlight
-                      ? 0.2
-                      : 0.92
-                  }
-                  markerEnd={
-                    isRelatedToHighlight
-                      ? 'url(#erd-arrow-active)'
-                      : 'url(#erd-arrow)'
-                  }
-                />
+                <g key={`${rel.constraintName}-${idx}`}>
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={isLogical ? '6 4' : undefined}
+                    strokeLinejoin="miter"
+                    strokeMiterlimit={4}
+                    strokeLinecap="square"
+                    opacity={
+                      activeTableLower && !isRelatedToHighlight
+                        ? 0.18
+                        : 0.94
+                    }
+                    markerEnd={markerEnd}
+                  >
+                    <title>{tooltipText}</title>
+                  </path>
+
+                  {/* Cardinality Badge on Relationship Connector */}
+                  {(!activeTableLower || isRelatedToHighlight) && midX > 0 && (
+                    <g
+                      transform={`translate(${midX}, ${midY})`}
+                      opacity={activeTableLower && !isRelatedToHighlight ? 0.3 : 1}
+                      style={{ pointerEvents: 'auto', cursor: 'help' }}
+                    >
+                      <title>{tooltipText}</title>
+                      <rect
+                        x={-badgeWidth / 2}
+                        y={-8}
+                        width={badgeWidth}
+                        height={16}
+                        rx={3}
+                        fill={isRelatedToHighlight ? '#0f172a' : '#1e293b'}
+                        stroke={isLogical ? '#f59e0b' : (isRelatedToHighlight ? 'var(--erd-line-active)' : '#475569')}
+                        strokeWidth={1}
+                        strokeDasharray={isLogical ? '2 2' : undefined}
+                      />
+                      <text
+                        x={0}
+                        y={3.5}
+                        textAnchor="middle"
+                        fontSize={8.5}
+                        fontWeight={800}
+                        fontFamily="var(--font-mono)"
+                        fill={isLogical ? '#fbbf24' : (isRelatedToHighlight ? '#38bdf8' : '#cbd5e1')}
+                      >
+                        {badgeText}
+                      </text>
+                    </g>
+                  )}
+                </g>
               );
             })}
           </svg>

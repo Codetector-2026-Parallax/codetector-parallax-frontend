@@ -52,6 +52,9 @@ export function getSqlEditorUrl(): string {
   }
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
+    if (host.includes('jsclub.dev')) {
+      return 'https://codetector-sql.jsclub.dev';
+    }
     if (host.includes('leintdo.id.vn')) {
       return 'https://codetector-sql.leintdo.id.vn';
     }

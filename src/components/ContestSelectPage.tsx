@@ -25,19 +25,19 @@ const DEFAULT_CONTESTS: ContestInfo[] = [
   {
     id: 'training',
     name: 'training',
-    title: 'Đấu Trường Huấn Luyện SQL',
+    title: 'Vết Tích Trong Thùng Hàng (Training)',
     description:
-      '3 câu hỏi truy vấn dữ liệu SQL thuần túy trên cơ sở dữ liệu munihard.sql (bãi đỗ xe, cây ATM, nhật ký bảo tàng).',
-    target_database: 'contestdb',
+      'Training chuẩn bị để bước vào vụ án chính thức.',
+    target_database: 'Training',
     is_active: false,
   },
   {
     id: 'official',
     name: 'official',
-    title: 'Đại Án Parallax (Chính Thức)',
+    title: 'Viên ngọc Parallax (Chính thức)',
     description:
-      '3 chương điều tra đại án vụ trộm bảo vật tại bảo tàng Aureum trên các phân hệ cơ sở dữ liệu parallax_c1 đến c3.',
-    target_database: 'parallax_c1',
+      '8 chương điều tra đại án vụ trộm bảo vật tại bảo tàng Aureum',
+    target_database: 'Parallax',
     is_active: false,
   },
 ];
@@ -107,9 +107,13 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
     };
   }, [isAdmin]);
 
-  const handleChoose = (contestId: string, isActive: boolean) => {
+  const handleChoose = (contestId: string, isActive: boolean, isAllowed: boolean = true) => {
+    if (!isAllowed) {
+      setError('Tài khoản của bạn chỉ được cấp quyền tham gia Đấu Trường Huấn Luyện (Training).');
+      return;
+    }
     if (!isActive && !isAdmin) {
-      setError('Đấu trường này hiện đang tạm dừng hoặc chưa mở cửa.');
+      setError('Vụ án này hiện tại đang bị tạm dừng hoặc chưa bắt đầu điều tra.');
       return;
     }
     setActiveContestId(contestId);
@@ -122,10 +126,10 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
       const targetContest = contests.find((c) => c.id === contestId);
       const nextIsActive = typeof currentIsActive === 'boolean' ? !currentIsActive : (targetContest ? !targetContest.is_active : undefined);
       const updated = await toggleAdminContest(contestId, nextIsActive);
-      showToast(`Đã ${updated.is_active ? 'BẬT (Mở cửa)' : 'TẮT (Tạm dừng)'} đấu trường "${updated.title}".`);
+      showToast(`Đã ${updated.is_active ? 'BẬT (Bắt đầu điều tra)' : 'TẮT (Tạm dừng)'} Vụ án "${updated.title}".`);
       await loadContests();
     } catch (err: any) {
-      showToast(err?.message || 'Không thể thay đổi trạng thái đấu trường');
+      showToast(err?.message || 'Không thể thay đổi trạng thái vụ án');
     } finally {
       setActionLoading(false);
     }
@@ -136,11 +140,11 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
     setActionLoading(true);
     try {
       const updated = await stopAdminContest(confirmStopContest.id);
-      showToast(`✓ Đã DỪNG & ĐẶT LẠI toàn bộ tiến độ của đấu trường "${updated.title}".`);
+      showToast(`✓ Đã DỪNG & ĐẶT LẠI toàn bộ tiến độ của vụ án "${updated.title}".`);
       setConfirmStopContest(null);
       await loadContests();
     } catch (err: any) {
-      showToast(err?.message || 'Không thể dừng đấu trường');
+      showToast(err?.message || 'Không thể dừng vụ án');
     } finally {
       setActionLoading(false);
     }
@@ -169,7 +173,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
             <h1 className="cp-event-title">
               <span className="cp-event-title-gold">CODETECTOR PARALLAX</span>
               {' — '}
-              {isAdmin ? 'QUẢN TRỊ ĐẤU TRƯỜNG' : 'LỰA CHỌN ĐẤU TRƯỜNG'}
+              {isAdmin ? 'QUẢN TRỊ VỤ ÁN' : 'LỰA CHỌN VỤ ÁN'}
             </h1>
           </div>
 
@@ -207,7 +211,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
               className="cp-btn-secondary"
               onClick={onLogout}
               style={{ padding: '5px 10px', fontSize: '11px' }}
-              title="Đăng xuất khỏi phiên làm việc"
+              title="Đăng xuất khỏi phiên điều tra"
             >
               ⎋ ĐĂNG XUẤT
             </button>
@@ -260,7 +264,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                   className="cp-sticker-badge"
                   style={{ boxShadow: '2px 2px 0px var(--color-frame-ink)' }}
                 >
-                  {isAdmin ? 'HỆ THỐNG ĐIỀU HÀNH BAN TỔ CHỨC' : 'HỆ THỐNG ĐẤU TRƯỜNG CODETECTOR'}
+                  CODETECTOR
                 </span>
                 <span
                   style={{
@@ -284,7 +288,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                   letterSpacing: '-0.3px',
                 }}
               >
-                {isAdmin ? 'LỰA CHỌN ĐẤU TRƯỜNG QUẢN TRỊ' : 'LỰA CHỌN PHÂN HỆ THI ĐẤU'}
+                {isAdmin ? 'LỰA CHỌN ĐẤU TRƯỜNG QUẢN TRỊ' : 'LỰA CHỌN VỤ ÁN'}
               </h2>
 
               <p
@@ -298,7 +302,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
               >
                 {isAdmin
                   ? 'Chọn phân hệ đấu trường để vào bảng điều hành trực tiếp (Manh mối thực tế, Bảng xếp hạng, Nhật ký nộp bài, Đáp án DB). Bạn cũng có thể Bắt đầu, Tạm dừng hoặc Dừng & Đặt lại tiến độ của từng đấu trường ngay tại đây.'
-                  : 'Vui lòng lựa chọn đấu trường thi đấu để hệ thống tự động đồng bộ hồ sơ vụ án, nạp bộ câu hỏi và cấp quyền truy vấn tương ứng trên SQL Editor.'}
+                  : 'Vui lòng lựa chọn vụ án để bắt đầu điều tra.'}
               </p>
             </div>
 
@@ -335,7 +339,12 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
               {contests.map((c) => {
                 const isSelected = currentContestId === c.id;
                 const isTraining = c.id === 'training';
-                const canEnter = c.is_active || isAdmin;
+                const isAllowed =
+                  isAdmin ||
+                  (c.is_accessible !== undefined
+                    ? c.is_accessible
+                    : (!user.allowedContests || user.allowedContests.length === 0 || user.allowedContests.includes(c.id)));
+                const canEnter = (c.is_active && isAllowed) || isAdmin;
 
                 return (
                   <div
@@ -396,8 +405,8 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                             }}
                           >
                             {isTraining
-                              ? 'HUẤN LUYỆN SQL (MUNIHARD)'
-                              : 'ĐẠI ÁN PARALLAX (OFFICIAL)'}
+                              ? 'VẾT TÍCH TRONG THÙNG HÀNG (TRAINING)'
+                              : 'VIÊN NGỌC PARALLAX (OFFICIAL)'}
                           </strong>
                         </div>
 
@@ -408,15 +417,21 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                             gap: '6px',
                           }}
                         >
-                          <span
-                            className={`cp-sticker-badge ${
-                              c.is_active
-                                ? 'cp-sticker-badge-success'
-                                : 'cp-sticker-badge-error'
-                            }`}
-                          >
-                            {c.is_active ? '● MỞ CỬA' : '✕ TẠM DỪNG'}
-                          </span>
+                          {!isAllowed ? (
+                            <span className="cp-sticker-badge cp-sticker-badge-error">
+                              ⛔ KHÔNG CÓ QUYỀN TRUY CẬP
+                            </span>
+                          ) : (
+                            <span
+                              className={`cp-sticker-badge ${
+                                c.is_active
+                                  ? 'cp-sticker-badge-success'
+                                  : 'cp-sticker-badge-error'
+                              }`}
+                            >
+                              {c.is_active ? '● BẮT ĐẦU ĐIỀU TRA' : '✕ TẠM DỪNG'}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -493,8 +508,8 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                               }}
                             >
                               {isTraining
-                                ? '3 Câu hỏi SQL thuần túy'
-                                : '3 Chương điều tra đại án'}
+                                ? '3 Chặng điều tra'
+                                : '8 Mảnh ghép để giải mã vụ án'}
                             </span>
                           </div>
 
@@ -509,7 +524,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                               SỐ CÂU HỎI TRONG DB:
                             </span>
                             <span style={{ color: 'var(--color-ink)' }}>
-                              {c.questionCount ?? 3} câu
+                              {isTraining ? '3' : '8'} câu
                             </span>
                           </div>
 
@@ -520,12 +535,6 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                               alignItems: 'center',
                             }}
                           >
-                            <span style={{ color: 'var(--color-muted)' }}>
-                              ĐỘI THI ĐÃ NỘP BÀI:
-                            </span>
-                            <span style={{ color: 'var(--color-ink)' }}>
-                              {c.activeTeamCount ?? 0} đội
-                            </span>
                           </div>
 
                           <div
@@ -536,7 +545,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                             }}
                           >
                             <span style={{ color: 'var(--color-muted)' }}>
-                              TRUY VẬN SQL / METABASE:
+                              TRUY VẬN SQL:
                             </span>
                             <span
                               style={{
@@ -604,20 +613,24 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                       <button
                         type="button"
                         disabled={!canEnter && !isAdmin}
-                        onClick={() => handleChoose(c.id, c.is_active)}
-                        className="cp-btn-primary"
+                        onClick={() => handleChoose(c.id, c.is_active, isAllowed)}
+                        className={!isAllowed ? 'cp-btn-secondary' : 'cp-btn-primary'}
                         style={{
                           width: '100%',
                           padding: '10px 16px',
                           fontSize: '12px',
                           letterSpacing: '0.5px',
+                          cursor: (!canEnter && !isAdmin) ? 'not-allowed' : 'pointer',
+                          opacity: !isAllowed ? 0.6 : 1,
                         }}
                       >
                         {isAdmin
                           ? `🛠️ QUẢN TRỊ ${c.title.toUpperCase()} →`
+                          : !isAllowed
+                          ? 'KHÔNG CÓ QUYỀN TRUY CẬP'
                           : canEnter
                           ? `VÀO ${c.title.toUpperCase()} →`
-                          : 'ĐẤU TRƯỜNG ĐANG TẠM DỪNG'}
+                          : 'VỤ ÁN ĐANG TẠM DỪNG'}
                       </button>
                     </div>
                   </div>
@@ -637,7 +650,7 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                     fontSize: '12px',
                   }}
                 >
-                  ← QUAY LẠI BÀN LÀM VIỆC HIỆN TẠI
+                  ← QUAY LẠI PHIÊN ĐIỀU TRA HIỆN TẠI
                 </button>
               </div>
             )}

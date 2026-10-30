@@ -93,7 +93,7 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
                     className="cp-sticker-badge"
                     style={{ boxShadow: '2px 2px 0px var(--color-frame-ink)' }}
                   >
-                    CONTEST TERMINAL
+                    CASE RECORD
                   </span>
                   <img
                     src="/assets/xhieupeo.jpg"
@@ -115,10 +115,9 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
                   CODETECTOR PARALLAX
                 </h2>
                 <p style={{ margin: '0 0 12px 0' }}>
-                  Welcome to the official JSClub Case Record &amp; Investigation
-                  workstation. Sign in with your assigned Metabase team
-                  credentials to inspect the <strong>MuniDB_Hard</strong> ERD,
-                  request real-life hints, and submit case answers.
+                  Chào mừng đến với trang hồ sơ vụ án.
+                  Đăng nhập bằng tài khoản mà BTC cung cấp để xem hồ sơ
+                  và bắt đầu điều tra các vụ án chưa có lời giản.
                 </p>
               </div>
 
@@ -142,20 +141,19 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
                     paddingBottom: '3px',
                   }}
                 >
-                  CONTEST ENFORCEMENT RULES
+                  Luật giải mã
                 </div>
                 <ul style={{ margin: 0, paddingLeft: '16px' }}>
-                  <li>8 sequential investigation questions (Q1 → Q8).</li>
-                  <li>Maximum 6 attempts per question (-3 pts per retry).</li>
-                  <li>Instant database answer verification on submit.</li>
-                  <li>Single-use &ldquo;Nước cờ mạo hiểm&rdquo; unlocked from Q4.</li>
+                  <li>08 mảnh ghép chính thức và 03 câu hỏi training.</li>
+                  <li>Tối đa 06 lần nộp (-2 pts per retry).</li>
+                  <li>01 lần sử dụng &ldquo;Nước cờ mạo hiểm&rdquo; được mở khóa từ mảnh ghép số 04.</li>
                 </ul>
               </div>
             </section>
 
             {/* Right Column: Sign-In Form Card */}
             <section className="cp-auth-card">
-              <div className="cp-eyebrow-olive">TEAM SIGN-IN</div>
+              <div className="cp-eyebrow-olive">Đăng nhập</div>
 
               {errorMsg && (
                 <div className="cp-schema-notice-error" role="alert">
@@ -183,7 +181,7 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
                       textTransform: 'uppercase',
                     }}
                   >
-                    TEAM EMAIL ADDRESS OR USERNAME
+                    Địa chỉ email của đội
                   </span>
                   <input
                     id="cp-login-identifier"
@@ -214,7 +212,7 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
                       textTransform: 'uppercase',
                     }}
                   >
-                    PASSWORD
+                    Mật khẩu
                   </span>
                   <input
                     id="cp-login-password"
@@ -251,8 +249,8 @@ export const AuthLogin: React.FC<AuthLoginProps> = ({
                   opacity: 0.78,
                 }}
               >
-                Accounts are issued by BTC. Need credentials assistance? Contact
-                the JSClub Proctor Desk.
+                Các tài khoản được cấp bởi BTC. Cần hỗ trợ xác thực? Liên hệ
+                với BTC.
               </div>
             </section>
           </div>

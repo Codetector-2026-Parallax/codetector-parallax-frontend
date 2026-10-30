@@ -6,6 +6,7 @@ export interface AuthUser {
   email: string;
   teamName: string;
   role: UserRole;
+  allowedContests?: string[] | null;
 }
 
 export interface QuestionBreakdown {
@@ -124,7 +125,7 @@ export interface QuestionDetailData {
     questionNumber: number;
     title: string;
     story?: string;
-    content: string;
+    content?: string;
     caseDossier: {
       clues?: string[];
       related_tables?: string[];
@@ -145,8 +146,8 @@ export interface QuestionDetailData {
     hasRiskMove: boolean;
     riskMoveActive?: boolean;
     canActivateRiskMove: boolean;
-    submissionPenalty: number;
-    hintPenaltyPoints: number;
+    submissionPenalty?: number;
+    hintPenaltyPoints?: number;
     unlockedAt?: string | null;
     completedAt?: string | null;
   };
@@ -157,11 +158,11 @@ export interface QuestionDetailData {
     hint_type: 'LOW' | 'HIGH' | 'CUSTOM';
     status: 'REQUESTED' | 'DELIVERED' | 'UNDELIVERED' | 'DEDUCTION_APPLIED' | 'WAIVED';
     suggested_penalty: number;
-    deducted_points: number;
-    admin_note: string | null;
-    requested_at: string;
-    decided_at: string | null;
-    hint_title: string | null;
+    deducted_points?: number;
+    admin_note?: string | null;
+    requested_at?: string;
+    decided_at?: string | null;
+    hint_title?: string | null;
   }>;
 }
 
@@ -171,6 +172,7 @@ export interface ErdColumnMetadata {
   isNullable: boolean;
   isPrimaryKey: boolean;
   isForeignKey: boolean;
+  isUnique?: boolean;
   references?: {
     foreignTable: string;
     foreignColumn: string;
@@ -183,12 +185,19 @@ export interface ErdTableMetadata {
   columns: ErdColumnMetadata[];
 }
 
+export type ErdRelationshipType = 'SQL_FK' | 'LOGICAL';
+export type ErdCardinality = '1:N' | '1:0..1' | '0..1:N' | '0..1:0..1' | 'M:N';
+
 export interface ErdRelationship {
   constraintName: string;
   sourceTable: string;
   sourceColumn: string;
   targetTable: string;
   targetColumn: string;
+  relationshipType?: ErdRelationshipType;
+  cardinality?: ErdCardinality;
+  label?: string;
+  description?: string;
 }
 
 export interface ContestErdMetadata {
@@ -338,7 +347,42 @@ export interface ContestInfo {
   description: string;
   target_database: string;
   is_active: boolean;
+  is_accessible?: boolean;
   questionCount?: number;
   activeTeamCount?: number;
   created_at?: string;
+}
+
+export interface AdminRealtimeEvent {
+  id: string;
+  type:
+    | 'CONNECTED'
+    | 'SUBMISSION_CREATED'
+    | 'RISK_MOVE_ACTIVATED'
+    | 'HINT_REQUESTED'
+    | 'HINT_DELIVERED'
+    | 'HINT_REFUNDED'
+    | 'HINT_SOLVED'
+    | 'SCORE_ADJUSTED'
+    | 'SUBMISSION_REVIEWED'
+    | 'ANSWER_KEYS_UPDATED'
+    | 'CONTEST_STATUS_CHANGED'
+    | 'ANNOUNCEMENT'
+    | 'LEADERBOARD_FROZEN'
+    | 'LEADERBOARD_UNFROZEN';
+  teamId?: number;
+  teamName?: string;
+  questionNumber?: number;
+  contestId?: string;
+  action?: string;
+  isActive?: boolean;
+  message?: string;
+  level?: string;
+  isFrozen?: boolean;
+  timestamp: string;
+  status?: string;
+  isCorrect?: boolean;
+  attemptNumber?: number;
+  hintType?: string;
+  penalty?: number;
 }

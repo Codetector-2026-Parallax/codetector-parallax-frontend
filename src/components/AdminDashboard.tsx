@@ -11,6 +11,7 @@ import {
   toggleAdminContest,
   updateAdminQuestionAnswers,
   getStoredToken,
+  getStoredMetabaseSession,
   getApiUrl,
 } from '../api';
 import type {
@@ -19,7 +20,135 @@ import type {
   AdminSubmissionRecord,
   ContestInfo,
   LeaderboardEntry,
+  AdminRealtimeEvent,
 } from '../types';
+
+class AdminSoundEffects {
+  private ctx: AudioContext | null = null;
+  private enabled: boolean = true;
+
+  constructor() {
+    try {
+      const saved = localStorage.getItem('cp_admin_sound_enabled');
+      this.enabled = saved !== null ? saved === 'true' : true;
+    } catch {
+      this.enabled = true;
+    }
+  }
+
+  public isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  public setEnabled(val: boolean): void {
+    this.enabled = val;
+    try {
+      localStorage.setItem('cp_admin_sound_enabled', String(val));
+    } catch {
+      // ignore
+    }
+  }
+
+  private initCtx() {
+    if (!this.ctx && typeof window !== 'undefined') {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+  }
+
+  public playSuccessChime() {
+    if (!this.enabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(523.25, now);
+      osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.12);
+
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(659.25, now + 0.12);
+      osc2.frequency.exponentialRampToValueAtTime(783.99, now + 0.3);
+
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc1.start(now);
+      osc1.stop(now + 0.12);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.45);
+    } catch {
+      // AudioContext blocked
+    }
+  }
+
+  public playHintAlert() {
+    if (!this.enabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.setValueAtTime(1174.66, now + 0.1);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.5);
+    } catch {
+      // AudioContext blocked
+    }
+  }
+
+  public playWarning() {
+    if (!this.enabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(330, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.2);
+
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch {
+      // AudioContext blocked
+    }
+  }
+}
+
+const adminSound = new AdminSoundEffects();
 
 interface AdminDashboardProps {
   contestId: string;
@@ -43,6 +172,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [confirmStopThisContest, setConfirmStopThisContest] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Real-time SSE Connection, Audio & Live Activity Feed State
+  const [sseStatus, setSseStatus] = useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING');
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => adminSound.isEnabled());
+  const [showActivityFeed, setShowActivityFeed] = useState<boolean>(false);
+  const [liveEvents, setLiveEvents] = useState<AdminRealtimeEvent[]>([]);
+  const [highlightedHintId, setHighlightedHintId] = useState<number | null>(null);
+  const [highlightedSubId, setHighlightedSubId] = useState<number | null>(null);
+  const [highlightedTeamId, setHighlightedTeamId] = useState<number | null>(null);
+  const [reconnectCounter, setReconnectCounter] = useState<number>(0);
 
   // Tab 1: Hints Filters & Search
   const [hintStatusFilter, setHintStatusFilter] = useState<'ALL' | 'REQUESTED' | 'DELIVERED' | 'NOT_DELIVERED'>('ALL');
@@ -79,10 +218,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setToastMsg(msg);
     setTimeout(() => {
       setToastMsg((prev) => (prev === msg ? null : prev));
-    }, 3500);
+    }, 4500);
   };
 
-  // Load contest metadata once when contestId changes
+  const toggleSound = () => {
+    const nextVal = !soundEnabled;
+    adminSound.setEnabled(nextVal);
+    setSoundEnabled(nextVal);
+    if (nextVal) {
+      adminSound.playSuccessChime();
+    }
+  };
+
+  // Load contest metadata & pre-populate all tab badges once when contestId changes
   useEffect(() => {
     fetchAdminContests()
       .then((contestsData) => {
@@ -91,9 +239,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         }
       })
       .catch(() => {});
+
+    // Preload hints and leaderboard so tab badges and KPI cards are immediately accurate
+    fetchAdminHints(undefined, contestId)
+      .then((hData) => setHints(hData.hintRequests))
+      .catch(() => {});
+    fetchAdminLeaderboard(contestId)
+      .then((lbData) => setLeaderboard(lbData.leaderboard))
+      .catch(() => {});
+    fetchAdminQuestions(contestId)
+      .then((qData) => setQuestions(qData.questions))
+      .catch(() => {});
   }, [contestId]);
 
-  // Lazy-load ONLY the data for the currently active tab
+  // Load data for the currently active tab
   const loadAllAdminData = useCallback(
     async (silent: boolean = false) => {
       if (!silent) setLoading(true);
@@ -128,42 +287,154 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     loadAllAdminData(false);
-    // Low-frequency fallback sync (every 180s when visible); primary updates arrive via SSE
+    // Low-frequency fallback sync (every 120s when visible); primary updates arrive via SSE
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') {
         loadAllAdminData(true);
       }
-    }, 180000);
+    }, 120000);
 
     let es: EventSource | null = null;
+    let isCancelled = false;
+
     if (typeof EventSource !== 'undefined') {
+      setSseStatus('CONNECTING');
       const token = getStoredToken();
-      const ssePath = token ? `/api/events?token=${encodeURIComponent(token)}` : '/api/events';
-      es = new EventSource(getApiUrl(ssePath));
-      es.onmessage = (evt) => {
-        try {
-          const payload = JSON.parse(evt.data);
-          if (payload.type === 'CONTEST_STATUS_CHANGED') {
-            fetchAdminContests()
-              .then((cData) => {
-                if (Array.isArray(cData)) setContests(cData);
+      const mbSession = getStoredMetabaseSession();
+      const params = new URLSearchParams();
+      if (token) params.set('token', token);
+      if (mbSession) params.set('metabase_session', mbSession);
+
+      const ssePath = `/api/events${params.toString() ? '?' + params.toString() : ''}`;
+      try {
+        es = new EventSource(getApiUrl(ssePath), { withCredentials: true });
+
+        es.onopen = () => {
+          if (!isCancelled) setSseStatus('CONNECTED');
+        };
+
+        es.onerror = () => {
+          if (!isCancelled) setSseStatus('DISCONNECTED');
+        };
+
+        es.onmessage = (evt) => {
+          if (isCancelled) return;
+          try {
+            const payload: AdminRealtimeEvent = JSON.parse(evt.data);
+            setSseStatus('CONNECTED');
+
+            if (!payload.type || payload.type === 'CONNECTED') {
+              return;
+            }
+
+            const eventItem: AdminRealtimeEvent = {
+              ...payload,
+              id: payload.id || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              timestamp: payload.timestamp || new Date().toISOString(),
+            };
+
+            setLiveEvents((prev) => [eventItem, ...prev.slice(0, 29)]);
+
+            const teamLabel = payload.teamName ? `[${payload.teamName}]` : payload.teamId ? `[Đội ${payload.teamId}]` : 'Đội thi';
+            const qLabel = payload.questionNumber ? `Câu ${payload.questionNumber}` : 'Câu hỏi';
+
+            if (payload.type === 'HINT_REQUESTED') {
+              const penaltyText = payload.penalty ? ` (-${payload.penalty}đ)` : '';
+              const typeText = payload.hintType ? ` (${payload.hintType})` : '';
+              showToast(`💡 ${teamLabel} vừa YÊU CẦU GỢI Ý${typeText} cho ${qLabel}${penaltyText}!`);
+              adminSound.playHintAlert();
+
+              fetchAdminHints(undefined, contestId)
+                .then((hData) => {
+                  if (isCancelled) return;
+                  setHints(hData.hintRequests);
+                  if (hData.hintRequests.length > 0) {
+                    setHighlightedHintId(hData.hintRequests[0].id);
+                    setTimeout(() => setHighlightedHintId(null), 4000);
+                  }
+                })
+                .catch(() => {});
+            } else if (payload.type === 'HINT_DELIVERED') {
+              showToast(`✓ Đã bàn giao gợi ý cho ${teamLabel} (${qLabel}).`);
+              fetchAdminHints(undefined, contestId).then((h) => !isCancelled && setHints(h.hintRequests)).catch(() => {});
+              fetchAdminLeaderboard(contestId).then((lb) => !isCancelled && setLeaderboard(lb.leaderboard)).catch(() => {});
+            } else if (payload.type === 'HINT_REFUNDED') {
+              showToast(`↩ Hoàn điểm phạt gợi ý cho ${teamLabel} (${qLabel}).`);
+              fetchAdminHints(undefined, contestId).then((h) => !isCancelled && setHints(h.hintRequests)).catch(() => {});
+              fetchAdminLeaderboard(contestId).then((lb) => !isCancelled && setLeaderboard(lb.leaderboard)).catch(() => {});
+            } else if (payload.type === 'SUBMISSION_CREATED') {
+              const isCorrect = payload.isCorrect;
+              const attemptText = payload.attemptNumber ? ` (Lần ${payload.attemptNumber})` : '';
+              if (isCorrect) {
+                showToast(`✅ ${teamLabel} vừa nộp ĐÚNG ${qLabel}${attemptText}!`);
+                adminSound.playSuccessChime();
+              } else {
+                showToast(`❌ ${teamLabel} vừa nộp SAI ${qLabel}${attemptText}`);
+                adminSound.playWarning();
+              }
+
+              if (payload.teamId) {
+                setHighlightedTeamId(payload.teamId);
+                setTimeout(() => setHighlightedTeamId(null), 4000);
+              }
+
+              fetchAdminLeaderboard(contestId)
+                .then((lb) => !isCancelled && setLeaderboard(lb.leaderboard))
+                .catch(() => {});
+
+              fetchAdminSubmissions({
+                contestId,
+                questionNumber: subQuestionFilter ? Number(subQuestionFilter) : undefined,
+                status: subStatusFilter || undefined,
               })
-              .catch(() => {});
+                .then((sData) => {
+                  if (isCancelled) return;
+                  setSubmissions(sData.submissions);
+                  if (sData.submissions.length > 0) {
+                    setHighlightedSubId(sData.submissions[0].id);
+                    setTimeout(() => setHighlightedSubId(null), 4000);
+                  }
+                })
+                .catch(() => {});
+            } else if (payload.type === 'RISK_MOVE_ACTIVATED') {
+              showToast(`⚡ ${teamLabel} kích hoạt NƯỚC CỜ MẠO HIỂM tại ${qLabel}!`);
+              adminSound.playWarning();
+              fetchAdminLeaderboard(contestId).then((lb) => !isCancelled && setLeaderboard(lb.leaderboard)).catch(() => {});
+            } else if (payload.type === 'SCORE_ADJUSTED' || payload.type === 'SUBMISSION_REVIEWED') {
+              if (payload.teamId) {
+                setHighlightedTeamId(payload.teamId);
+                setTimeout(() => setHighlightedTeamId(null), 4000);
+              }
+              fetchAdminLeaderboard(contestId).then((lb) => !isCancelled && setLeaderboard(lb.leaderboard)).catch(() => {});
+              if (activeTab === 'SUBMISSIONS') {
+                fetchAdminSubmissions({
+                  contestId,
+                  questionNumber: subQuestionFilter ? Number(subQuestionFilter) : undefined,
+                  status: subStatusFilter || undefined,
+                }).then((s) => !isCancelled && setSubmissions(s.submissions)).catch(() => {});
+              }
+            } else if (payload.type === 'CONTEST_STATUS_CHANGED') {
+              fetchAdminContests().then((c) => !isCancelled && Array.isArray(c) && setContests(c)).catch(() => {});
+            } else if (payload.type === 'ANNOUNCEMENT') {
+              showToast(`📢 [THÔNG BÁO] ${payload.message || ''}`);
+            } else {
+              loadAllAdminData(true);
+            }
+          } catch {
+            // Heartbeat or parse error
           }
-          if (payload.type && payload.type !== 'CONNECTED') {
-            loadAllAdminData(true);
-          }
-        } catch {
-          // ignore heartbeat
-        }
-      };
+        };
+      } catch {
+        if (!isCancelled) setSseStatus('DISCONNECTED');
+      }
     }
 
     return () => {
+      isCancelled = true;
       clearInterval(timer);
       es?.close();
     };
-  }, [loadAllAdminData]);
+  }, [contestId, activeTab, subQuestionFilter, subStatusFilter, loadAllAdminData, reconnectCounter]);
 
   const currentContest = contests.find((c) => c.id === contestId);
   const pendingHintsCount = hints.filter((h) => h.status === 'REQUESTED').length;
@@ -453,15 +724,89 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               }}
             />
 
-            <span className="cp-live-indicator" title="Kết nối thời gian thực qua Server-Sent Events (SSE)">
+            <button
+              type="button"
+              className={`cp-live-indicator cp-live-indicator-${sseStatus.toLowerCase()}`}
+              onClick={() => {
+                if (sseStatus === 'DISCONNECTED') {
+                  setReconnectCounter((prev) => prev + 1);
+                }
+              }}
+              style={{
+                cursor: sseStatus === 'DISCONNECTED' ? 'pointer' : 'default',
+                background: 'none',
+              }}
+              title={
+                sseStatus === 'CONNECTED'
+                  ? 'Thời gian thực đã kết nối (SSE)'
+                  : sseStatus === 'CONNECTING'
+                  ? 'Đang kết nối lại máy chủ SSE...'
+                  : 'Mất kết nối máy chủ - Nhấn để kết nối lại'
+              }
+            >
               <span className="cp-live-dot" />
-              <span>REALTIME</span>
-            </span>
+              <span>
+                {sseStatus === 'CONNECTED'
+                  ? 'LIVE REALTIME'
+                  : sseStatus === 'CONNECTING'
+                  ? 'KẾT NỐI LẠI...'
+                  : 'MẤT KẾT NỐI (THỬ LẠI)'}
+              </span>
+            </button>
 
             <button
               type="button"
               className="cp-btn-secondary"
-              style={{ padding: '6px 10px', fontSize: '11px' }}
+              style={{
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+              onClick={toggleSound}
+              title={soundEnabled ? 'Nhấn để tắt chuông âm thanh thông báo' : 'Nhấn để bật chuông âm thanh thông báo'}
+            >
+              <span>{soundEnabled ? '🔔 ÂM BẬT' : '🔕 ÂM TẮT'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="cp-btn-secondary"
+              style={{
+                padding: '6px 10px',
+                fontSize: '11px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                backgroundColor: showActivityFeed ? 'var(--color-primary)' : undefined,
+                color: showActivityFeed ? '#ffffff' : undefined,
+              }}
+              onClick={() => setShowActivityFeed((prev) => !prev)}
+              title="Bật/Tắt bảng sự kiện trực tiếp của thí sinh"
+            >
+              <span>📡 LIVE FEED</span>
+              {liveEvents.length > 0 && (
+                <span
+                  style={{
+                    backgroundColor: showActivityFeed ? 'rgba(255,255,255,0.3)' : 'var(--badge-success-bg)',
+                    color: showActivityFeed ? '#fff' : 'var(--badge-success-text)',
+                    padding: '1px 5px',
+                    borderRadius: '2px',
+                    fontSize: '10px',
+                  }}
+                >
+                  {liveEvents.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="cp-btn-secondary"
+              style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 700 }}
               onClick={() => loadAllAdminData(false)}
               disabled={loading || actionLoading}
               title="Tải lại toàn bộ dữ liệu quản trị"
@@ -581,6 +926,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span style={{ fontSize: '18px', opacity: 0.8 }}>🔑</span>
           </div>
         </div>
+
+        {/* Live Activity Feed Drawer */}
+        {showActivityFeed && (
+          <div className="cp-live-feed-panel" style={{ marginTop: '4px', marginBottom: 0 }}>
+            <div className="cp-live-feed-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="cp-live-dot" style={{ backgroundColor: '#22c55e', width: '6px', height: '6px', borderRadius: '50%' }} />
+                <span>NHẬT KÝ SỰ KIỆN TRỰC TIẾP (REALTIME LIVE TICKER)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '10px', color: 'var(--color-muted)' }}>
+                  {liveEvents.length} sự kiện gần nhất
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLiveEvents([])}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', color: 'var(--color-muted)', fontWeight: 700 }}
+                  title="Xóa nhật ký sự kiện"
+                >
+                  [XÓA FEED]
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowActivityFeed(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 800 }}
+                  title="Đóng bảng feed"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="cp-live-feed-list">
+              {liveEvents.length === 0 ? (
+                <div style={{ padding: '14px', textAlign: 'center', color: 'var(--color-muted)', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+                  Chưa có sự kiện nào trong phiên hiện tại. Sự kiện nộp bài, gợi ý, mạo hiểm sẽ xuất hiện tự động theo thời gian thực.
+                </div>
+              ) : (
+                liveEvents.map((evt) => (
+                  <div key={evt.id} className="cp-live-feed-item">
+                    <span className="cp-live-feed-time">
+                      {new Date(evt.timestamp).toLocaleTimeString('vi-VN', { hour12: false })}
+                    </span>
+                    <span style={{ fontSize: '13px' }}>
+                      {evt.type === 'HINT_REQUESTED' && '💡'}
+                      {evt.type === 'HINT_DELIVERED' && '✓'}
+                      {evt.type === 'HINT_REFUNDED' && '↩'}
+                      {evt.type === 'SUBMISSION_CREATED' && (evt.isCorrect ? '✅' : '❌')}
+                      {evt.type === 'RISK_MOVE_ACTIVATED' && '⚡'}
+                      {evt.type === 'SCORE_ADJUSTED' && '⚖️'}
+                      {evt.type === 'ANNOUNCEMENT' && '📢'}
+                      {evt.type === 'CONTEST_STATUS_CHANGED' && '🏁'}
+                    </span>
+                    <div style={{ flex: 1, fontFamily: 'var(--font-mono)' }}>
+                      <strong>{evt.teamName || (evt.teamId ? `Đội ${evt.teamId}` : 'Hệ thống')}:</strong>{' '}
+                      {evt.type === 'HINT_REQUESTED' && `Yêu cầu gợi ý ${evt.hintType || ''} Câu ${evt.questionNumber} (-${evt.penalty || 10}đ)`}
+                      {evt.type === 'HINT_DELIVERED' && `Đã bàn giao gợi ý Câu ${evt.questionNumber}`}
+                      {evt.type === 'HINT_REFUNDED' && `Hoàn điểm phạt gợi ý Câu ${evt.questionNumber}`}
+                      {evt.type === 'SUBMISSION_CREATED' && (evt.isCorrect ? `Nộp ĐÚNG Câu ${evt.questionNumber} (Lần ${evt.attemptNumber || 1})` : `Nộp SAI Câu ${evt.questionNumber} (Lần ${evt.attemptNumber || 1})`)}
+                      {evt.type === 'RISK_MOVE_ACTIVATED' && `Kích hoạt Nước cờ mạo hiểm tại Câu ${evt.questionNumber}`}
+                      {evt.type === 'SCORE_ADJUSTED' && `Điều chỉnh điểm số`}
+                      {evt.type === 'ANNOUNCEMENT' && evt.message}
+                      {evt.type === 'CONTEST_STATUS_CHANGED' && `Thay đổi trạng thái đấu trường (${evt.action || ''})`}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ─── 2. TAB NAVIGATION BAR ─── */}
@@ -811,6 +1225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       return (
                         <tr
                           key={hr.id}
+                          className={highlightedHintId === hr.id ? 'cp-row-highlight-warning' : undefined}
                           style={{
                             backgroundColor: isPending ? 'var(--tint-brass)' : undefined,
                             borderLeft: isPending ? '4px solid var(--color-primary)' : undefined,
@@ -1014,7 +1429,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </tr>
                   ) : (
                     filteredLeaderboard.map((entry) => (
-                      <tr key={entry.teamId}>
+                      <tr
+                        key={entry.teamId}
+                        className={highlightedTeamId === entry.teamId ? 'cp-row-highlight-success' : undefined}
+                      >
                         <td
                           style={{
                             fontFamily: 'var(--font-display)',
@@ -1455,7 +1873,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       const isAccepted = sub.status === 'ACCEPTED';
 
                       return (
-                        <tr key={sub.id}>
+                        <tr
+                          key={sub.id}
+                          className={
+                            highlightedSubId === sub.id
+                              ? isAccepted
+                                ? 'cp-row-highlight-success'
+                                : 'cp-row-highlight-warning'
+                              : undefined
+                          }
+                        >
                           <td style={{ fontFamily: 'var(--font-mono)' }}>#{sub.id}</td>
                           <td>
                             <strong>{sub.team_name}</strong>
@@ -1901,8 +2328,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
       {/* Toast Notification Container */}
       {toastMsg && (
-        <div className="cp-toast" role="status">
-          {toastMsg}
+        <div
+          className="cp-toast"
+          role="status"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: '460px',
+            padding: '10px 14px',
+            zIndex: 9999,
+          }}
+        >
+          <div style={{ flex: 1, lineHeight: 1.4 }}>{toastMsg}</div>
+          <button
+            type="button"
+            onClick={() => setToastMsg(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-ink)',
+              cursor: 'pointer',
+              fontWeight: 900,
+              fontSize: '12px',
+              padding: '2px 4px',
+              lineHeight: 1,
+            }}
+            title="Đóng thông báo"
+          >
+            ✕
+          </button>
         </div>
       )}
     </main>
