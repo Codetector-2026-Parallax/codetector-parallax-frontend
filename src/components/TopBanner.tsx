@@ -8,10 +8,24 @@ interface TopBannerProps {
   progress?: TeamProgressInfo | null;
   scoreSummary?: TeamScoreSummary | null;
   activeContestId?: string;
+  contestStartedAt?: string | null;
+  isContestActive?: boolean;
+  isContestLocked?: boolean;
   onOpenContestSelect?: () => void;
   onLogout: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
+}
+
+function formatTimer(seconds: number): string {
+  if (seconds < 0) seconds = 0;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export const TopBanner: React.FC<TopBannerProps> = ({
@@ -19,6 +33,9 @@ export const TopBanner: React.FC<TopBannerProps> = ({
   progress,
   scoreSummary,
   activeContestId,
+  contestStartedAt,
+  isContestActive = true,
+  isContestLocked = false,
   onOpenContestSelect,
   onLogout,
   theme,
@@ -26,6 +43,29 @@ export const TopBanner: React.FC<TopBannerProps> = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(() => {
+    if (!contestStartedAt) return 0;
+    return Math.max(0, Math.floor((Date.now() - new Date(contestStartedAt).getTime()) / 1000));
+  });
+
+  useEffect(() => {
+    if (!contestStartedAt) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const calcElapsed = () => {
+      const diff = Math.max(0, Math.floor((Date.now() - new Date(contestStartedAt).getTime()) / 1000));
+      setElapsedSeconds(diff);
+    };
+
+    calcElapsed();
+    if (!isContestActive) return;
+
+    const interval = setInterval(calcElapsed, 1000);
+    return () => clearInterval(interval);
+  }, [contestStartedAt, isContestActive]);
 
   const teamDisplayName = user.teamName || user.username || 'TEAM';
   const initials = teamDisplayName
@@ -79,35 +119,80 @@ export const TopBanner: React.FC<TopBannerProps> = ({
           {' — '}
           {user.role === 'ADMIN' ? 'ADMIN CONTROL DESK' : 'CASE RECORD'}
         </h1>
-        {user.role === 'USER' && scoreSummary && (
-          <div
-            className="cp-banner-score-badges"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              flexShrink: 0,
-              flexWrap: 'nowrap',
-              minWidth: 0,
-            }}
-          >
-            <div className="cp-sticker-badge" title="Live Team Progress">
-              <span>PROGRESS: {progress?.progressText ?? '0/3'}</span>
-            </div>
+        <div
+          className="cp-banner-score-badges"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flexShrink: 0,
+            flexWrap: 'nowrap',
+            minWidth: 0,
+          }}
+        >
+          {/* Contest Timer Badge */}
+          {contestStartedAt ? (
             <div
-              className="cp-sticker-badge cp-sticker-badge-error"
-              title="Total point deductions from retries, hints, and penalties"
+              className={`cp-sticker-badge ${
+                isContestActive ? 'cp-sticker-badge-score' : 'cp-sticker-badge-error'
+              }`}
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                fontSize: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '1px 1px 0px var(--color-frame-ink)',
+              }}
+              title={
+                isContestActive
+                  ? `Thời gian thi đấu: bắt đầu lúc ${new Date(contestStartedAt).toLocaleTimeString()}`
+                  : 'Đấu trường đang tạm dừng'
+              }
             >
-              <span>PENALTY: -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
+              <span>{isContestActive ? '⏱️' : '⏸️'}</span>
+              <span>{formatTimer(elapsedSeconds)}</span>
+              {!isContestActive && <span style={{ fontSize: '9px', opacity: 0.8 }}>[PAUSED]</span>}
             </div>
+          ) : (
             <div
-              className="cp-sticker-badge cp-sticker-badge-score"
-              title="Current score held by the team"
+              className="cp-sticker-badge"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                color: 'var(--color-muted)',
+              }}
+              title="Đấu trường chưa bắt đầu bấm giờ"
             >
-              <span>{Number(scoreSummary.score ?? scoreSummary.finalScore) || 0} PTS</span>
+              <span>⏱️</span>
+              <span>00:00</span>
             </div>
-          </div>
-        )}
+          )}
+
+          {user.role === 'USER' && scoreSummary && (
+            <>
+              <div className="cp-sticker-badge" title="Live Team Progress">
+                <span>PROGRESS: {progress?.progressText ?? '0/3'}</span>
+              </div>
+              <div
+                className="cp-sticker-badge cp-sticker-badge-error"
+                title="Total point deductions from retries, hints, and time penalties"
+              >
+                <span>PENALTY: -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
+              </div>
+              <div
+                className="cp-sticker-badge cp-sticker-badge-score"
+                title="Current score held by the team"
+              >
+                <span>{Number(scoreSummary.score ?? scoreSummary.finalScore) || 0} PTS</span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Right: Theme Toggle + User Profile Icon -> AUTHENTICATED TEAM, LOGOUT */}
@@ -117,15 +202,19 @@ export const TopBanner: React.FC<TopBannerProps> = ({
             type="button"
             className="cp-theme-toggle"
             onClick={onOpenContestSelect}
-            title="Bấm để chuyển đổi đấu trường Huấn Luyện hoặc Chính Thức"
+            title={
+              isContestLocked
+                ? 'Đội của bạn đang tham gia vụ án này. Cần hoàn thành toàn bộ câu hỏi trước khi chuyển sang vụ án khác.'
+                : 'Bấm để chuyển đổi đấu trường Huấn Luyện hoặc Chính Thức'
+            }
             style={{
               borderColor: activeContestId === 'training' ? 'var(--glass)' : 'var(--color-primary)',
               color: activeContestId === 'training' ? 'var(--glass)' : 'var(--color-primary-text)',
               backgroundColor: activeContestId === 'training' ? 'var(--tint-slate)' : 'var(--tint-brass)',
             }}
           >
-            <span>{activeContestId === 'training' ? 'HUẤN LUYỆN' : 'CHÍNH THỨC'}</span>
-            <span style={{ fontSize: '9px', opacity: 0.8 }}>[ĐỔI]</span>
+            <span>{isContestLocked ? '🔒' : ''} {activeContestId === 'training' ? 'HUẤN LUYỆN' : 'CHÍNH THỨC'}</span>
+            <span style={{ fontSize: '9px', opacity: 0.8 }}>{isContestLocked ? '[KHÓA ĐỔI]' : '[ĐỔI]'}</span>
           </button>
         )}
 

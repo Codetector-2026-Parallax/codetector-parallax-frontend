@@ -476,3 +476,22 @@ export async function stopAdminContest(id: string): Promise<ContestInfo> {
   });
   return data.contest;
 }
+
+export async function selectContest(contestId: string): Promise<{ selectedContestId: string }> {
+  return apiFetch('/api/contests/select', {
+    method: 'POST',
+    body: JSON.stringify({ contestId }),
+  });
+}
+
+export async function controlAdminTimer(
+  contestId: string,
+  action: 'START' | 'RESET' | 'SET',
+  startedAt?: string
+): Promise<ContestInfo> {
+  const data = await apiFetch<{ contest: ContestInfo }>(`/api/admin/contests/${contestId}/timer`, {
+    method: 'POST',
+    body: JSON.stringify({ action, startedAt }),
+  });
+  return data.contest;
+}

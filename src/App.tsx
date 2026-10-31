@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 
 import {
   AUTH_SYNC_EVENT_KEY,
   activateQuestionRiskMove,
+  fetchContests,
   fetchCurrentUser,
   fetchErdMetadata,
   fetchQuestionDetail,
@@ -81,6 +82,10 @@ export const App: React.FC = () => {
       return null;
     }
   });
+
+  const [contestStartedAt, setContestStartedAt] = useState<string | null>(null);
+  const [isContestActive, setIsContestActive] = useState<boolean>(true);
+  const [isContestLocked, setIsContestLocked] = useState<boolean>(false);
 
   // Hide / Unhide Pieces List state (persisted to localStorage)
   const [isSidebarHidden, setIsSidebarHidden] = useState<boolean>(() => {
@@ -418,6 +423,22 @@ export const App: React.FC = () => {
           const targetQ = Math.max(1, data.progress.currentQuestionNumber);
           setSelectedQ(targetQ);
         }
+
+        fetchContests()
+          .then((cList) => {
+            const activeC = cList.find((c) => c.id === activeContestId);
+            if (activeC) {
+              setContestStartedAt(activeC.started_at || null);
+              setIsContestActive(activeC.is_active);
+            }
+            const otherC = cList.find((c) => c.id !== activeContestId);
+            if (otherC && otherC.is_locked_by_current_contest) {
+              setIsContestLocked(true);
+            } else {
+              setIsContestLocked(false);
+            }
+          })
+          .catch(() => {});
       } catch (err: any) {
         if (err?.code === 'CONTEST_INACTIVE' || err?.message?.includes('tạm dừng') || err?.message?.includes('chưa mở cửa')) {
           try {
@@ -507,6 +528,14 @@ export const App: React.FC = () => {
         try {
           const payload = JSON.parse(evt.data);
           if (payload.type === 'CONTEST_STATUS_CHANGED') {
+            if (payload.contestId === activeContestId) {
+              if (payload.startedAt !== undefined) {
+                setContestStartedAt(payload.startedAt);
+              }
+              if (payload.isActive !== undefined) {
+                setIsContestActive(payload.isActive);
+              }
+            }
             if (
               payload.contestId === activeContestId &&
               (!payload.isActive || payload.action === 'PAUSE' || payload.action === 'STOP')
@@ -776,6 +805,9 @@ export const App: React.FC = () => {
           progress={progress}
           scoreSummary={scoreSummary}
           activeContestId={user.role === 'ADMIN' ? (adminContestId || 'official') : activeContestId}
+          contestStartedAt={contestStartedAt}
+          isContestActive={isContestActive}
+          isContestLocked={isContestLocked}
           onOpenContestSelect={() => {
             if (user.role === 'ADMIN') {
               setAdminContestId(null);

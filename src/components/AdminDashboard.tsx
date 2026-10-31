@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   adjustTeamScore,
   confirmAdminHintDelivery,
+  controlAdminTimer,
   fetchAdminContests,
   fetchAdminHints,
   fetchAdminLeaderboard,
@@ -153,6 +154,14 @@ const adminSound = new AdminSoundEffects();
 interface AdminDashboardProps {
   contestId: string;
   onSwitchContest: () => void;
+}
+
+function formatAdminTimer(seconds: number): string {
+  if (seconds < 0) seconds = 0;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -555,6 +564,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const handleControlTimer = async (action: 'START' | 'RESET') => {
+    setActionLoading(true);
+    try {
+      const updated = await controlAdminTimer(contestId, action);
+      showToast(
+        action === 'START'
+          ? `✓ Đã BẮT ĐẦU đồng hồ tính giờ cho "${updated.title}".`
+          : `✓ Đã RESET đồng hồ tính giờ cho "${updated.title}".`
+      );
+      const cData = await fetchAdminContests().catch(() => []);
+      if (Array.isArray(cData)) setContests(cData);
+      await loadAllAdminData(true);
+    } catch (err: any) {
+      showToast(err?.message || 'Không thể điều khiển đồng hồ');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const [adminElapsedSec, setAdminElapsedSec] = useState<number>(() => {
+    if (!currentContest?.started_at) return 0;
+    return Math.max(0, Math.floor((Date.now() - new Date(currentContest.started_at).getTime()) / 1000));
+  });
+
+  useEffect(() => {
+    if (!currentContest?.started_at) {
+      setAdminElapsedSec(0);
+      return;
+    }
+    const updateElapsed = () => {
+      const diff = Math.max(0, Math.floor((Date.now() - new Date(currentContest.started_at!).getTime()) / 1000));
+      setAdminElapsedSec(diff);
+    };
+    updateElapsed();
+    if (!currentContest.is_active) return;
+    const interval = setInterval(updateElapsed, 1000);
+    return () => clearInterval(interval);
+  }, [currentContest?.started_at, currentContest?.is_active]);
+
   // Filtered Hints
   const filteredHints = useMemo(() => {
     return hints.filter((h) => {
@@ -689,6 +737,55 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Right: Arena Operations & Live Status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Live Contest Timer Badge */}
+            <div
+              className={`cp-sticker-badge ${
+                currentContest?.is_active && currentContest?.started_at ? 'cp-sticker-badge-score' : ''
+              }`}
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 8px',
+                boxShadow: '1px 1px 0px var(--color-frame-ink)',
+              }}
+              title={
+                currentContest?.started_at
+                  ? `Đồng hồ bắt đầu lúc ${new Date(currentContest.started_at).toLocaleTimeString()}`
+                  : 'Đồng hồ chưa được bật'
+              }
+            >
+              <span>{currentContest?.is_active && currentContest?.started_at ? '⏱️' : '⏸️'}</span>
+              <span>{currentContest?.started_at ? formatAdminTimer(adminElapsedSec) : '00:00:00'}</span>
+            </div>
+
+            {!currentContest?.started_at ? (
+              <button
+                type="button"
+                className="cp-btn-primary"
+                style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 700 }}
+                onClick={() => handleControlTimer('START')}
+                disabled={actionLoading}
+                title="Bắt đầu tính giờ thi đấu"
+              >
+                ⏱️ BẮT ĐẦU GIỜ
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="cp-btn-secondary"
+                style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 700 }}
+                onClick={() => handleControlTimer('RESET')}
+                disabled={actionLoading}
+                title="Đặt lại đồng hồ về 0"
+              >
+                🔄 RESET GIỜ
+              </button>
+            )}
+
             <button
               type="button"
               className={currentContest?.is_active ? 'cp-btn-secondary' : 'cp-btn-primary'}

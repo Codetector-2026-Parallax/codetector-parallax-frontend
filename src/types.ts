@@ -7,6 +7,8 @@ export interface AuthUser {
   teamName: string;
   role: UserRole;
   allowedContests?: string[] | null;
+  selectedContestId?: string | null;
+  isContestCompleted?: boolean;
 }
 
 export interface QuestionBreakdown {
@@ -18,9 +20,14 @@ export interface QuestionBreakdown {
   earnedGrossPoints: number;
   submissionPenalty: number;
   hintPenalty: number;
+  timePenalty?: number;
+  timeSpentSeconds?: number;
+  timeSpentMinutes?: number;
+  allInvestigationsDone?: boolean;
   netQuestionPoints: number;
   unlockedAt?: string | null;
   completedAt?: string | null;
+  timeSpentFormatted?: string;
 }
 
 export interface TeamScoreSummary {
@@ -28,6 +35,7 @@ export interface TeamScoreSummary {
   totalEarnedPoints: number;
   submissionPenaltyTotal: number;
   hintPenaltyTotal: number;
+  timePenaltyTotal?: number;
   undergroundDealPenalty: number;
   cheatPenalty: number;
   riskMovePenalty: number;
@@ -347,7 +355,12 @@ export interface ContestInfo {
   description: string;
   target_database: string;
   is_active: boolean;
+  started_at?: string | null;
   is_accessible?: boolean;
+  is_selected?: boolean;
+  is_completed?: boolean;
+  is_locked_by_current_contest?: boolean;
+  lock_reason?: string | null;
   questionCount?: number;
   activeTeamCount?: number;
   created_at?: string;
@@ -376,6 +389,7 @@ export interface AdminRealtimeEvent {
   contestId?: string;
   action?: string;
   isActive?: boolean;
+  startedAt?: string | null;
   message?: string;
   level?: string;
   isFrozen?: boolean;

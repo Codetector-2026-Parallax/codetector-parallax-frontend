@@ -4,6 +4,7 @@ import {
   fetchContests,
   getApiUrl,
   getStoredToken,
+  selectContest,
   setActiveContestId,
   stopAdminContest,
   toggleAdminContest,
@@ -107,17 +108,34 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
     };
   }, [isAdmin]);
 
-  const handleChoose = (contestId: string, isActive: boolean, isAllowed: boolean = true) => {
+  const handleChoose = async (
+    contestId: string,
+    isActive: boolean,
+    isAllowed: boolean = true,
+    isLocked: boolean = false
+  ) => {
     if (!isAllowed) {
       setError('Tài khoản của bạn chỉ được cấp quyền tham gia Đấu Trường Huấn Luyện (Training).');
+      return;
+    }
+    if (isLocked && !isAdmin) {
+      setError('Đội của bạn đang tham gia vụ án khác. Bạn cần hoàn thành toàn bộ câu hỏi trước khi chuyển sang vụ án này.');
       return;
     }
     if (!isActive && !isAdmin) {
       setError('Vụ án này hiện tại đang bị tạm dừng hoặc chưa bắt đầu điều tra.');
       return;
     }
-    setActiveContestId(contestId);
-    onSelectContest(contestId);
+
+    try {
+      if (!isAdmin) {
+        await selectContest(contestId);
+      }
+      setActiveContestId(contestId);
+      onSelectContest(contestId);
+    } catch (err: any) {
+      setError(err?.message || 'Không thể chọn đấu trường này.');
+    }
   };
 
   const handleToggleContest = async (contestId: string, currentIsActive?: boolean) => {
@@ -337,14 +355,22 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
               }}
             >
               {contests.map((c) => {
-                const isSelected = currentContestId === c.id;
+                const isSelected = currentContestId === c.id || Boolean(c.is_selected);
                 const isTraining = c.id === 'training';
                 const isAllowed =
                   isAdmin ||
                   (c.is_accessible !== undefined
                     ? c.is_accessible
                     : (!user.allowedContests || user.allowedContests.length === 0 || user.allowedContests.includes(c.id)));
-                const canEnter = (c.is_active && isAllowed) || isAdmin;
+                const isLocked = Boolean(
+                  !isAdmin &&
+                  (c.is_locked_by_current_contest ||
+                    (user.selectedContestId &&
+                      user.selectedContestId !== c.id &&
+                      !user.isContestCompleted &&
+                      !c.is_completed))
+                );
+                const canEnter = (c.is_active && isAllowed && !isLocked) || isAdmin;
 
                 return (
                   <div
@@ -419,7 +445,18 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                         >
                           {!isAllowed ? (
                             <span className="cp-sticker-badge cp-sticker-badge-error">
-                              ⛔ KHÔNG CÓ QUYỀN TRUY CẬP
+                              ⛔ KHÔNG CÓ QUYỀN
+                            </span>
+                          ) : isLocked ? (
+                            <span
+                              className="cp-sticker-badge cp-sticker-badge-error"
+                              title={c.lock_reason || 'Đội đang thi đấu trường khác'}
+                            >
+                              🔒 ĐANG THI ĐẤU TRƯỜNG KHÁC
+                            </span>
+                          ) : isSelected ? (
+                            <span className="cp-sticker-badge cp-sticker-badge-score">
+                              {c.is_completed ? '✓ ĐÃ HOÀN THÀNH' : '★ ĐANG THI ĐẤU'}
                             </span>
                           ) : (
                             <span
@@ -528,14 +565,27 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                             </span>
                           </div>
 
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                            }}
-                          >
-                          </div>
+                          {c.started_at && (
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span style={{ color: 'var(--color-muted)' }}>
+                                BẮT ĐẦU LÚC:
+                              </span>
+                              <span
+                                style={{
+                                  color: 'var(--color-primary-text)',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ⏱ {new Date(c.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              </span>
+                            </div>
+                          )}
 
                           <div
                             style={{
@@ -605,6 +655,23 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                             </button>
                           </div>
                         )}
+
+                        {isLocked && (
+                          <div
+                            style={{
+                              backgroundColor: 'var(--badge-error-bg)',
+                              border: '1px solid var(--badge-error-border)',
+                              color: 'var(--badge-error-text)',
+                              padding: '8px 12px',
+                              fontSize: '11px',
+                              lineHeight: '1.4',
+                              marginBottom: '12px',
+                              boxShadow: '1px 1px 0px var(--color-frame-ink)',
+                            }}
+                          >
+                            🔒 <strong>ĐẤU TRƯỜNG BỊ KHÓA:</strong> Đội của bạn đang tham gia vụ án khác. Cần hoàn thành toàn bộ câu hỏi trước khi chuyển sang vụ án này.
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -613,21 +680,25 @@ export const ContestSelectPage: React.FC<ContestSelectPageProps> = ({
                       <button
                         type="button"
                         disabled={!canEnter && !isAdmin}
-                        onClick={() => handleChoose(c.id, c.is_active, isAllowed)}
-                        className={!isAllowed ? 'cp-btn-secondary' : 'cp-btn-primary'}
+                        onClick={() => handleChoose(c.id, c.is_active, isAllowed, isLocked)}
+                        className={!isAllowed || isLocked ? 'cp-btn-secondary' : 'cp-btn-primary'}
                         style={{
                           width: '100%',
                           padding: '10px 16px',
                           fontSize: '12px',
                           letterSpacing: '0.5px',
                           cursor: (!canEnter && !isAdmin) ? 'not-allowed' : 'pointer',
-                          opacity: !isAllowed ? 0.6 : 1,
+                          opacity: !isAllowed || isLocked ? 0.6 : 1,
                         }}
                       >
                         {isAdmin
                           ? `🛠️ QUẢN TRỊ ${c.title.toUpperCase()} →`
                           : !isAllowed
                           ? 'KHÔNG CÓ QUYỀN TRUY CẬP'
+                          : isLocked
+                          ? '🔒 ĐÃ KHÓA (CHƯA HOÀN THÀNH VỤ ÁN HIỆN TẠI)'
+                          : isSelected
+                          ? (c.is_completed ? 'XEM LẠI VỤ ÁN →' : 'TIẾP TỤC ĐIỀU TRA →')
                           : canEnter
                           ? `VÀO ${c.title.toUpperCase()} →`
                           : 'VỤ ÁN ĐANG TẠM DỪNG'}
