@@ -180,7 +180,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({
               </div>
               <div
                 className="cp-sticker-badge cp-sticker-badge-error"
-                title="Total point deductions from retries, hints, and time penalties"
+                title="Total point deductions from retries and hints"
               >
                 <span>PENALTY: -{Math.max(0, Number(scoreSummary.totalPenalty) || 0)}</span>
               </div>
